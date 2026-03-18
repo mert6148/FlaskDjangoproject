@@ -1,0 +1,23 @@
+{
+    "name": "app",
+    "version": "1.0.0",
+    "AWSTemplateFormatVersion": {
+        "description": "2010-09-09"
+    }
+
+    "Conditions": {
+        "IsProduction": {
+            "Fn::Equals": [
+                {
+                    "Ref": "Environment"
+                },
+                "production"
+            ]
+        }
+    },"Parameters": {
+        "Environment": {
+            "Type": "String",
+            "Description": "The environment to deploy to (e.g., production, staging, development)"
+        }
+    }
+}

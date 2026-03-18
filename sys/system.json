@@ -1,0 +1,14 @@
+{
+    "name": "system",
+    "version": "1.0.0",
+    "description": "System information and utilities",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "author": "Your Name",
+    "license": "MIT",
+    "dependencies": {
+        "os": "^0.1.1"
+    }
+}
