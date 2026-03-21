@@ -4,3 +4,4 @@ Flask ve Django ile oluşturulan bu proje Python ve Javascript ile yazılmış o
 
 - [Proje hakkında araştırma yapmak için](https://docs.github.com/en/copilot/tutorials/migrate-a-project)
 - [Projenin Github reposuna ulaşmak için](https://github.com/mert6148/FlaskDjangoproject.git)
+- []()

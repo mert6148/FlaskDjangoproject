@@ -46,3 +46,37 @@ class NewApp(App, AssertionExample):
     def demonstrate(self):
         print("Demonstrating NewApp functionality")
         self.assert_example()
+
+# System syntax error
+class setAttribute(name, value):
+    def east_asian_width(chr):
+        for i in range:
+            i
+
+# ZipFile class
+class ZipFile:
+    def __init__(self, file):
+        self.file = file
+    def write(self, file, arcname=None, compress_type=None, compresslevel=None):
+        pass
+    def close(self):
+        pass
+    def namelist(self):
+        pass
+    def getinfo(self, name):
+        pass
+    def getnames(self):
+        pass
+
+# ZipInfo class
+class ZipInfo:
+    def __init__(self, name):
+        self.name = name
+    def getinfo(self, name):
+        pass
+    def getnames(self):
+        pass
+    def getinfo(self, name):
+        pass
+    def getnames(self):
+        pass
