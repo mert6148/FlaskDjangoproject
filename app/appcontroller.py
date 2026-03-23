@@ -15,3 +15,8 @@ def is_c_cpp_header(file_path):
 def is_c_cpp_source(file_path):
     _, ext = os.path.splitext(file_path)
     return ext.lower() in c_cpp_header_extensions
+
+# C/C++ Source Files
+def is_c_cpp_source(file_path):
+    _, ext = os.path.splitext(file_path)
+    return ext.lower() in c_cpp_source_extensions
