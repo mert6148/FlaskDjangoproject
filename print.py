@@ -1,82 +1,114 @@
 import os
 import sys
-from Flask import Flask, render_template, request, redirect, url_for
+import zipfile
 
-# This file is for testing print statements and assertions.
+
+# ── Temel uygulama sınıfı ─────────────────────────────────────────────────────
 class App:
+    """Flask/Django uygulama giriş noktası."""
+
     def __init__(self):
         self.samefile = os.path.samefile
+        self.assertion_example = AssertionExample()
 
     def main(self):
-        print("example print statement")
-        self.assert_example()
-
-    def has_option(opt_str):
-        return opt_str in sys.argv
-    
-# Class that contains an assertion example to demonstrate how assertions work in Python.
-class AssertionExample:
-    def assert_example(self):
-        assert 1 + 1 == 2, "Math is broken!"
-        print("Assertion passed successfully!")
-
-    def __bytes__(self):
-        return b"AssertionExample"
-    
-    def __delitem__(self, key):
-        print(f"Deleting item with key: {key}")
-        
-    def __dir__(self):
-        return ['assert_example', '__bytes__', '__delitem__', '__dir__'],
-
-# App class that initializes the AssertionExample class and calls its main method to demonstrate assertions and print statements.
-class App:
-    def __init__(self):
-        self.assertion_example = AssertionExample()
+        print("Uygulama başlatıldı.")
+        self.assertion_example.assert_example()
 
     def _source_(self):
         print("source method called")
         self.assertion_example.assert_example()
 
-# New class that inherits from both App and AssertionExample, allowing it to utilize their functionalities. It includes a method to demonstrate the use of assertions and print statements.
+    @staticmethod
+    def has_option(opt_str: str) -> bool:
+        return opt_str in sys.argv
+
+
+# ── Doğrulama örneği ──────────────────────────────────────────────────────────
+class AssertionExample:
+    """Python assertion kullanımını gösteren yardımcı sınıf."""
+
+    def assert_example(self):
+        assert 1 + 1 == 2, "Matematik bozuldu!"
+        print("Assertion başarıyla geçti!")
+
+    def __bytes__(self) -> bytes:
+        return b"AssertionExample"
+
+    def __delitem__(self, key):
+        print(f"Silinen anahtar: {key}")
+
+    def __dir__(self) -> list:
+        return ["assert_example", "__bytes__", "__delitem__", "__dir__"]
+
+
+# ── Çoklu kalıtım örneği ──────────────────────────────────────────────────────
 class NewApp(App, AssertionExample):
+    """App ve AssertionExample'dan türetilmiş genişletilmiş sınıf."""
+
     def __init__(self):
         super().__init__()
 
     def demonstrate(self):
-        print("Demonstrating NewApp functionality")
+        print("NewApp işlevselliği gösteriliyor")
         self.assert_example()
 
-# System syntax error
-class setAttribute(name, value):
-    def east_asian_width(chr):
-        for i in range:
-            i
 
-# ZipFile class
-class ZipFile:
-    def __init__(self, file):
+# ── Öznitelik atama yardımcısı ────────────────────────────────────────────────
+class AttributeSetter:
+    """Dinamik öznitelik atama için yardımcı sınıf."""
+
+    def set_attribute(self, name: str, value) -> None:
+        setattr(self, name, value)
+
+    @staticmethod
+    def east_asian_width(char: str) -> str:
+        """Unicode Doğu Asya genişlik kategorisini döndürür."""
+        import unicodedata
+        return unicodedata.east_asian_width(char)
+
+
+# ── ZipFile sarmalayıcı ───────────────────────────────────────────────────────
+class SafeZipFile:
+    def __init__(self, file: str, mode: str = "r"):
         self.file = file
-    def write(self, file, arcname=None, compress_type=None, compresslevel=None):
-        pass
-    def close(self):
-        pass
-    def namelist(self):
-        pass
-    def getinfo(self, name):
-        pass
-    def getnames(self):
-        pass
+        self.mode = mode
+        self._zf: zipfile.ZipFile | None = None
 
-# ZipInfo class
-class ZipInfo:
-    def __init__(self, name):
+    def __enter__(self):
+        self._zf = zipfile.ZipFile(self.file, self.mode)
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def write(self, filename, arcname=None, compress_type=None, compresslevel=None):
+        if self._zf:
+            self._zf.write(filename, arcname=arcname,
+                           compress_type=compress_type, compresslevel=compresslevel)
+
+    def close(self):
+        if self._zf:
+            self._zf.close()
+
+    def namelist(self) -> list[str]:
+        return self._zf.namelist() if self._zf else []
+
+    def getinfo(self, name: str) -> zipfile.ZipInfo | None:
+        return self._zf.getinfo(name) if self._zf else None
+
+
+# ── ZipInfo sarmalayıcı ───────────────────────────────────────────────────────
+class SafeZipInfo:
+    def __init__(self, name: str):
         self.name = name
-    def getinfo(self, name):
-        pass
-    def getnames(self):
-        pass
-    def getinfo(self, name):
-        pass
-    def getnames(self):
-        pass
+        self._info = zipfile.ZipInfo(name)
+
+    def getinfo(self, name: str) -> zipfile.ZipInfo:
+        return zipfile.ZipInfo(name)
+
+
+# ── Giriş noktası ─────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    uygulama = NewApp()
+    uygulama.demonstrate()
