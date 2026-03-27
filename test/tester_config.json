@@ -1,0 +1,30 @@
+{
+    "timeout": 300,
+    "retries": 2,
+    "AWSTemplateFormatVersion": {
+        "type": "string",
+        "default": "2010-09-09"
+    },
+    "Parameters": {
+        "InstanceType": {
+            "type": "string",
+            "default": "t2.micro",
+            "allowedValues": [
+                "t2.micro",
+                "t2.small",
+                "t2.medium"
+            ],
+            "description": "EC2 Instance Type"
+        }
+    },
+    "Conditions": {
+        "IsProduction": {
+            "Fn::Equals": [
+                {
+                    "Ref": "EnvironmentType"
+                },
+                "production"
+            ]
+        }
+    }
+}
