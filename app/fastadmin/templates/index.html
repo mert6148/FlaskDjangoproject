@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="FastAPI Admin" />
+    <title>FastAPI Admin</title>
+    <script>
+      window.SERVER_DOMAIN = "";
+      window.SERVER_URL = "/{{ADMIN_PREFIX}}/api";
+    </script>
+    <script
+      defer="defer"
+      src="/{{ADMIN_PREFIX}}/static/index.min.js"
+    ></script>
+    <link
+      href="/{{ADMIN_PREFIX}}/static/index.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

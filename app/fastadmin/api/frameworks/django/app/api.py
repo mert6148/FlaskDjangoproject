@@ -1,0 +1,462 @@
+import json
+import logging
+from dataclasses import asdict
+from datetime import datetime, time
+from functools import wraps
+from uuid import UUID
+
+from django.core.files.uploadedfile import UploadedFile
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models.fields.files import FieldFile, ImageFieldFile
+from django.http import JsonResponse as BaseJsonResponse
+from django.http import StreamingHttpResponse
+from django.http.request import HttpRequest
+
+from fastadmin.api.exceptions import AdminApiException
+from fastadmin.api.helpers import is_valid_id, parse_list_filters_from_query_params
+from fastadmin.api.schemas import (
+    ExportInputSchema,
+    SignInInputSchema,
+)
+from fastadmin.api.service import ApiService, get_user_id_from_session_id
+from fastadmin.models.schemas import (
+    ActionInputSchema,
+    ActionResponseSchema,
+    ActionResponseType,
+    WidgetActionInputSchema,
+)
+from fastadmin.settings import settings
+
+logger = logging.getLogger(__name__)
+api_service = ApiService()
+
+
+class JsonEncoder(DjangoJSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime | time):
+            return o.isoformat()
+        if isinstance(o, UUID):
+            return str(o)
+        if isinstance(o, ImageFieldFile | FieldFile):
+            try:
+                return o.url
+            except ValueError:
+                return None
+        return super().default(o)
+
+
+class JsonResponse(BaseJsonResponse):
+    def __init__(self, *args, **kwargs):
+        kwargs["encoder"] = JsonEncoder
+        super().__init__(*args, **kwargs)
+
+
+def csrf_exempt(view_func):
+    async def wrapped_view(*args, **kwargs):
+        return await view_func(*args, **kwargs)
+
+    wrapped_view.csrf_exempt = True
+    return wraps(view_func)(wrapped_view)
+
+
+@csrf_exempt
+async def sign_in(request: HttpRequest) -> JsonResponse:
+    """This method is used to sign in.
+
+    :params response: a response object.
+    :params payload: a payload object.
+    :return: None.
+    """
+    if request.method != "POST":
+        return JsonResponse({"detail": "Method not allowed"}, status=405)
+    try:
+        payload = SignInInputSchema(**json.loads(request.body))
+        session_id = await api_service.sign_in(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            payload,
+            request=request,
+        )
+
+        response = JsonResponse({})
+        response.set_cookie(settings.ADMIN_SESSION_ID_KEY, value=session_id, httponly=True)
+        return response
+
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def sign_out(request: HttpRequest) -> JsonResponse:
+    """This method is used to sign out.
+
+    :params response: a response object.
+    :return: None.
+    """
+    if request.method != "POST":
+        return JsonResponse({"detail": "Method not allowed"}, status=405)
+    try:
+        response = JsonResponse({})
+        if await api_service.sign_out(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+        ):
+            response.delete_cookie(settings.ADMIN_SESSION_ID_KEY)
+        return response
+
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def me(request: HttpRequest) -> JsonResponse:
+    """This method is used to get current user.
+
+    :params user_id: a user id.
+    :return: A user object.
+    """
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        user_id = await get_user_id_from_session_id(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+        )
+        if not user_id:
+            raise AdminApiException(401, "User is not authenticated.")
+        obj = await api_service.get(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            settings.ADMIN_USER_MODEL,
+            user_id,
+            request=request,
+        )
+        return JsonResponse(obj)
+
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def list_objs(request: HttpRequest, model: str) -> JsonResponse:
+    """This method is used to get a list of objects.
+
+    :params request: a request object.
+    :params model: a name of model.
+    :params search: a search string.
+    :params sort_by: a sort by string.
+    :params offset: an offset.
+    :params limit: a limit.
+    :return: A list of objects.
+    """
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        search = request.GET.get("search") or None
+        sort_by = request.GET.get("sort_by") or None
+        offset = int(request.GET.get("offset", 0))
+        limit = int(request.GET.get("limit", 10))
+        list_filters = parse_list_filters_from_query_params(
+            request.GET.keys,
+            request.GET.getlist,
+            exclude={"search", "sort_by", "offset", "limit"},
+        )
+
+        objs, total = await api_service.list(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            search=search,
+            sort_by=sort_by,
+            filters=list_filters,
+            offset=offset,
+            limit=limit,
+            request=request,
+        )
+        return JsonResponse(
+            {
+                "total": total,
+                "results": objs,
+            }
+        )
+    except ValueError:
+        return JsonResponse({"detail": "Invalid format of get parameters"}, status=422)
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def get(request: HttpRequest, model: str, id: UUID | int | str) -> JsonResponse:
+    """This method is used to get an object.
+
+    :params model: a name of model.
+    :params id: an id of object.
+    :return: An object.
+    """
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    if not is_valid_id(id):
+        return JsonResponse({"error": "Invalid id. It must be a UUID, an integer, or a non-empty string."}, status=422)
+    try:
+        obj = await api_service.get(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            id,
+            request=request,
+        )
+        return JsonResponse(obj)
+
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def add(request: HttpRequest, model: str) -> JsonResponse:
+    """This method is used to add an object.
+
+    :params model: a name of model.
+    :params payload: a payload object.
+    :return: An object.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        obj = await api_service.add(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            json.loads(request.body),
+            request=request,
+        )
+        return JsonResponse(obj)
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def change_password(request: HttpRequest, id: UUID | int | str) -> JsonResponse:
+    """This method is used to change a password.
+
+    :params id: an id of object.
+    :params payload: a payload object.
+    :return: An object.
+    """
+    if request.method != "PATCH":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    if not is_valid_id(id):
+        return JsonResponse({"error": "Invalid id. It must be a UUID, an integer, or a non-empty string."}, status=422)
+    try:
+        await api_service.change_password(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            id,
+            json.loads(request.body),
+            request=request,
+        )
+        return JsonResponse(id, safe=False)
+
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def change(request: HttpRequest, model: str, id: UUID | int | str) -> JsonResponse:
+    """This method is used to change an object.
+
+    :params model: a name of model.
+    :params id: an id of object.
+    :params payload: a payload object.
+    :return: An object.
+    """
+    if request.method != "PATCH":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    if not is_valid_id(id):
+        return JsonResponse({"error": "Invalid id. It must be a UUID, an integer, or a non-empty string."}, status=422)
+    try:
+        obj = await api_service.change(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            id,
+            json.loads(request.body),
+            request=request,
+        )
+        return JsonResponse(obj)
+
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def upload_file(
+    request: HttpRequest,
+    model: str,
+    field_name: str,
+) -> JsonResponse:
+    """This method is used to upload files.
+
+    :params request: a request object.
+    :params model: a name of model.
+    :params field_name: a name of field.
+    :return: A file url.
+    """
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        file: UploadedFile = request.FILES.get("file")
+        if not file:
+            return JsonResponse({"error": "File not found"}, status=400)
+        file_name = file.name
+        file_content = file.read()
+        file_url = await api_service.upload_file(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            field_name,
+            file_name,
+            file_content,
+            request=request,
+        )
+        return JsonResponse(file_url, safe=False)
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def export(request: HttpRequest, model: str) -> JsonResponse:
+    """This method is used to export a list of objects.
+
+    :params request: a request object.
+    :params model: a name of model.
+    :params payload: a payload object.
+    :params search: a search string.
+    :params sort_by: a sort by string.
+    :return: A stream of export data.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    search = request.GET.get("search") or None
+    sort_by = request.GET.get("sort_by") or None
+    list_filters = parse_list_filters_from_query_params(
+        request.GET.keys,
+        request.GET.getlist,
+        exclude={"search", "sort_by", "offset", "limit"},
+    )
+    try:
+        payload = ExportInputSchema(**json.loads(request.body))
+        file_name, content_type, stream = await api_service.export(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            payload,
+            search=search,
+            sort_by=sort_by,
+            filters=list_filters,
+            request=request,
+        )
+        response = StreamingHttpResponse(stream, content_type=content_type)
+        response.headers["Content-Disposition"] = f'attachment; filename="{file_name}"'
+        return response
+
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def delete(
+    request: HttpRequest,
+    model: str,
+    id: UUID | int | str,
+) -> JsonResponse:
+    """This method is used to delete an object.
+
+    :params model: a name of model.
+    :params id: an id of object.
+    :return: An id of object.
+    """
+    if request.method != "DELETE":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    if not is_valid_id(id):
+        return JsonResponse({"error": "Invalid id. It must be a UUID, an integer, or a non-empty string."}, status=422)
+    try:
+        deleted_id = await api_service.delete(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            id,
+            request=request,
+        )
+        return JsonResponse(deleted_id, safe=False)
+
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def action(
+    request: HttpRequest,
+    model: str,
+    action: str,
+) -> JsonResponse:
+    """This method is used to perform an action.
+
+    :params model: a name of model.
+    :params action: a name of action.
+    :params payload: a payload object.
+    :return: action result.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        payload = ActionInputSchema(**json.loads(request.body))
+        response = await api_service.action(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            action,
+            payload,
+            request=request,
+        )
+        if not response:
+            response = ActionResponseSchema(
+                type=ActionResponseType.MESSAGE,
+                data="Successfully applied",
+            )
+        return JsonResponse(asdict(response))
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def widget_action(
+    request: HttpRequest,
+    model: str,
+    widget_action: str,
+) -> JsonResponse:
+    """This method is used to perform an action.
+
+    :params model: a name of model.
+    :params widget_action: a name of action.
+    :params payload: a payload object.
+    :return: widget action result.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        payload = WidgetActionInputSchema(**json.loads(request.body))
+        response = await api_service.widget_action(
+            request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+            model,
+            widget_action,
+            payload,
+            request=request,
+        )
+        return JsonResponse(asdict(response))
+    except AdminApiException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+
+
+@csrf_exempt
+async def configuration(request: HttpRequest) -> JsonResponse:
+    """This method is used to get a configuration.
+
+    :params user_id: an id of user.
+    :return: A configuration.
+    """
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    obj = await api_service.get_configuration(
+        request.COOKIES.get(settings.ADMIN_SESSION_ID_KEY, None),
+        request=request,
+    )
+    return JsonResponse(asdict(obj))
