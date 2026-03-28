@@ -1,0 +1,17 @@
+1. Bilgisayarımızdaki dosyamızın konumu nerde ise adım adım o konuma cd ile gelelim.
+2. Github üzerinde repositories oluşturduğumuz gibi bu klasörde de git init komutuyla klasör içinde git bir repostories oluşturuyoruz.(.git şeklinde oluşur.)
+3. Bulunduğumuz klasör içindeki tüm dosyaları almak için git add . komutunu kullanıyoruz.
+4. Şimde de hangi github url üzerine dosyalarımızı göndereceğimizi belirleyelim. git remote add origin https://github.com/EsraDemirr/deneme.git komutu ile önceden kopyaladığımız url yi buraya yapıştırıp enter’lıyoruz.
+5. Dosyalarımızı gönderdiğimize dair bir commit mesajı da git commit -m “dosyaları yükledim” bu şekilde gönderebiliriz.
+6. Veeee artık dosyaları gönderme zamanı git push origin master diyerek tüm dosyaları gönderiyoruz.
+
+Dosyarı yüklemesi için 1–2 dk bekleyelim.
+Dosyaların yüklenip yüklenmediğini kontrol etmek amaçlı github hesabımızda oluşturduğumuz repositories içine girip bakalım.(Önceden zaten girdiysen sayfayı yenilemeyi unutma)
+
+İşte hepsi bu kadar :) Dosyaları yüklemek bu kadar kolay..
+
+Ama Github üzerinde paylaşılan bir proje dosyasını kendi bilgisayarındaki bir klasöre çekmek yüklemekten daha kolay.. İşte komutumuz:
+
+git clone add (Cekmek istenen dosyanın url’i)
+
+ama bu kodu yazmadan önce githuba gönderdiğimiz dosyaların klasöründen çıkalım. Bilgisayarımızın istediğimiz herhangi bir konumunda yeni klasör oluşturarak dosyaları oraya bu komut aracılığıyla çekebiliriz.
