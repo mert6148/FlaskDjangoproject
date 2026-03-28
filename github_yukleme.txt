@@ -1,0 +1,29 @@
+# GITHUB'A PROJE YÜKLEME ADIMLARI
+
+# 1. Proje klasörüne git
+
+cd PROJE_KLASOR_YOLU
+
+# 2. Git başlat
+
+git init
+
+# 3. Tüm dosyaları ekle
+
+git add .
+
+# 4. İlk commit
+
+git commit -m "ilk commit"
+
+# 5. Branch adını main yap
+
+git branch -M main
+
+# 6. GitHub repo bağlantısı ekle
+
+git remote add origin https://github.com/KULLANICI_ADIN/REPO_ADI.git
+
+# 7. Projeyi GitHub'a gönder
+
+git push -u origin main
