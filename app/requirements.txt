@@ -1,0 +1,11 @@
+# FlaskDB Projesi — Bağımlılıklar
+# Kurulum: pip install -r requirements.txt
+
+flask>=3.0.0
+flask-sqlalchemy>=3.1.0
+
+# Üretim sunucusu
+gunicorn>=21.2.0
+
+# PostgreSQL için (isteğe bağlı)
+# psycopg2-binary>=2.9.9

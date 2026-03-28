@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>FlaskDB · Mesaj Panosu</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#f5f0e8;--paper:#faf7f2;--ink:#1a1612;--mid:#6b6156;
+  --faint:#e8e2d8;--line:#d4cdc3;
+  --red:#c0392b;--green:#2d6a4f;--blue:#2c5f8a;--amber:#b5651d;
+  --serif:'Instrument Serif',Georgia,serif;
+  --mono:'Geist Mono','Courier New',monospace;
+  --r:6px;
+}
+html{min-height:100%}
+body{background:var(--cream);color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.6;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");opacity:.7}
+
+.wrap{max-width:720px;margin:0 auto;padding:52px 24px 80px;position:relative;z-index:1}
+
+/* Header */
+.header{text-align:center;margin-bottom:44px;animation:drop .45s ease both}
+@keyframes drop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+.header-eye{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--mid);margin-bottom:12px}
+.header-title{font-family:var(--serif);font-size:clamp(34px,8vw,54px);font-weight:400;line-height:1.05;color:var(--ink);margin-bottom:6px}
+.header-title em{font-style:italic;color:var(--mid)}
+.header-sub{font-size:10px;color:var(--mid);letter-spacing:.5px}
+
+/* Status bar */
+.status-bar{
+  display:flex;align-items:center;gap:8px;padding:9px 14px;
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+  margin-bottom:22px;font-size:10px;color:var(--mid);
+}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2.5s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.status-bar a{color:var(--mid);text-decoration:none;margin-left:4px}
+.status-bar a:hover{color:var(--ink)}
+.status-right{margin-left:auto;display:flex;gap:12px}
+
+/* DB Stats panel */
+.db-panel{
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px 20px;margin-bottom:22px;
+  animation:rise .4s ease .08s both;
+}
+.db-panel-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);margin-bottom:12px}
+.db-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+#db-stats{display:contents}
+.db-stat-row{
+  background:var(--cream);border:1px solid var(--line);border-radius:4px;
+  padding:10px 12px;
+}
+.db-stat-key{font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:var(--mid);display:block;margin-bottom:4px}
+.db-stat-val{font-size:14px;font-weight:500;color:var(--ink)}
+
+/* Flash */
+.flash-wrap{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;animation:rise .3s ease both}
+.flash{padding:10px 16px;border-radius:var(--r);border-left:3px solid;font-size:12px;display:flex;align-items:center;gap:8px}
+.flash.success{background:rgba(45,106,79,.07);border-color:var(--green);color:var(--green)}
+.flash.warn   {background:rgba(181,101,29,.07);border-color:var(--amber);color:var(--amber)}
+.flash.error  {background:rgba(192,57,43,.07); border-color:var(--red);  color:var(--red)}
+.flash.info   {background:rgba(44,95,138,.07); border-color:var(--blue); color:var(--blue)}
+
+/* Form */
+.form-card{
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+  padding:24px;margin-bottom:22px;
+  box-shadow:0 1px 3px rgba(26,22,18,.05);
+  animation:rise .45s ease .05s both;
+}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.form-label{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);margin-bottom:8px}
+.form-input{
+  width:100%;padding:11px 13px;background:var(--cream);
+  border:1px solid var(--line);border-radius:var(--r);
+  font-family:var(--mono);font-size:13px;color:var(--ink);
+  outline:none;transition:border-color .15s;resize:vertical;min-height:80px;
+}
+.form-input:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(26,22,18,.05)}
+.form-input::placeholder{color:var(--mid)}
+.form-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:10px}
+.char-count{font-size:10px;color:var(--mid)}
+.char-count.warn{color:var(--amber)}.char-count.over{color:var(--red)}
+
+/* Search */
+.search-row{display:flex;gap:10px;margin-bottom:18px}
+.search-input{
+  flex:1;padding:9px 13px;background:var(--paper);
+  border:1px solid var(--line);border-radius:var(--r);
+  font-family:var(--mono);font-size:12px;color:var(--ink);outline:none;
+  transition:border-color .15s;
+}
+.search-input:focus{border-color:var(--ink)}
+.search-input::placeholder{color:var(--mid)}
+
+/* Buttons */
+.btn{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.5px;padding:9px 18px;border-radius:var(--r);cursor:pointer;border:1px solid;transition:all .15s}
+.btn-primary{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.btn-primary:hover{background:#2d2820;transform:translateY(-1px);box-shadow:0 3px 8px rgba(26,22,18,.18)}
+.btn-ghost{background:transparent;color:var(--mid);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-danger{background:transparent;color:var(--red);border-color:rgba(192,57,43,.25);font-size:10px;padding:5px 10px}
+.btn-danger:hover{background:rgba(192,57,43,.05)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+
+/* Divider */
+.divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--mid);font-size:10px;letter-spacing:2px;text-transform:uppercase}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line)}
+
+/* Messages */
+.msg-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.msg-title{font-family:var(--serif);font-size:20px;font-style:italic;color:var(--ink)}
+.msg-count{font-size:10px;padding:3px 10px;border-radius:20px;background:var(--faint);color:var(--mid);border:1px solid var(--line)}
+
+#msg-list{display:flex;flex-direction:column;gap:9px}
+.msg-item{
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 16px;display:flex;align-items:flex-start;gap:12px;
+  transition:border-color .15s,box-shadow .15s;
+  animation:slideIn .28s ease both;
+}
+.msg-item:hover{border-color:var(--mid);box-shadow:0 2px 6px rgba(26,22,18,.05)}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+.msg-num{font-size:10px;color:var(--mid);background:var(--cream);border:1px solid var(--line);border-radius:4px;padding:3px 7px;flex-shrink:0;margin-top:1px;min-width:34px;text-align:center}
+.msg-body{flex:1;min-width:0}
+.msg-text{font-size:13px;color:var(--ink);word-break:break-word;line-height:1.5}
+.msg-meta{font-size:10px;color:var(--mid);margin-top:4px;display:flex;gap:12px}
+.msg-actions{flex-shrink:0;align-self:flex-start}
+
+/* Empty */
+.empty{text-align:center;padding:48px 20px;border:1px dashed var(--line);border-radius:var(--r);color:var(--mid)}
+.empty-icon{font-size:30px;margin-bottom:10px;opacity:.4}
+.empty-text{font-family:var(--serif);font-size:18px;font-style:italic;margin-bottom:4px}
+.empty-sub{font-size:10px;letter-spacing:.5px}
+
+/* Footer */
+.footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--mid);letter-spacing:.5px}
+.footer-links{display:flex;gap:14px}
+.footer-links a{color:var(--mid);text-decoration:none}
+.footer-links a:hover{color:var(--ink)}
+
+@media(max-width:500px){.form-row,.search-row{flex-direction:column}.footer{flex-direction:column;gap:8px;text-align:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-eye">Flask · SQLite · JS Entegrasyonu</div>
+    <h1 class="header-title">Mesaj <em>Panosu</em></h1>
+    <p class="header-sub">app.js + app.py + SQLAlchemy</p>
+  </header>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="status-dot"></span>
+    <span id="status-text">Bağlanıyor...</span>
+    <div class="status-right">
+      <a href="/api/status">/api/status</a>
+      <a href="/api/mesajlar">/api/mesajlar</a>
+      <a href="/api/db/istatistik">/api/db/istatistik</a>
+    </div>
+  </div>
+
+  <!-- DB Stats -->
+  <div class="db-panel">
+    <div class="db-panel-title">Veritabanı İstatistikleri</div>
+    <div class="db-stats-grid">
+      <div id="db-stats">
+        <!-- app.js → UI.istatistikGoster() tarafından doldurulur -->
+        <div class="db-stat-row"><span class="db-stat-key">Durum</span><span class="db-stat-val" style="color:var(--amber)">Yükleniyor...</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flash messages (Jinja2 form fallback) -->
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+  {% if msgs %}
+  <div class="flash-wrap">
+    {% for cat, msg in msgs %}
+    <div class="flash {{ cat }}">
+      {% if cat == 'success' %}✓{% elif cat == 'error' %}✗{% elif cat == 'warn' %}⚠{% else %}ℹ{% endif %}
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Form (AJAX + fallback form POST) -->
+  <div class="form-card">
+    <form id="msgForm" action="/submit" method="POST">
+      <label class="form-label" for="dataInput">Yeni Mesaj</label>
+      <textarea
+        class="form-input"
+        id="dataInput"
+        name="data"
+        placeholder="Mesajınızı yazın... (max 500 karakter)"
+        maxlength="500"
+        required
+      ></textarea>
+      <div class="form-row">
+        <span class="char-count" id="charCount">0 / 500</span>
+        <button class="btn btn-primary" type="submit" id="submit-btn">Gönder →</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="divider">Mesajlar</div>
+
+  <!-- Search + clear -->
+  <div class="search-row">
+    <input class="search-input" type="text" id="search-input" placeholder="Mesajlarda ara..."/>
+    <button class="btn btn-ghost" id="temizle-btn">Tümünü Sil</button>
+  </div>
+
+  <!-- Message list header -->
+  <div class="msg-header">
+    <span class="msg-title">Kayıtlar</span>
+    <span class="msg-count" id="msg-count">— kayıt</span>
+  </div>
+
+  <!-- Message list (app.js tarafından yönetilir) -->
+  <div id="msg-list">
+    <!-- Sunucu tarafı fallback (JS çalışmazsa) -->
+    {% if mesajlar %}
+      {% for m in mesajlar %}
+      <div class="msg-item">
+        <span class="msg-num">#{{ m.id }}</span>
+        <div class="msg-body">
+          <div class="msg-text">{{ m.veri }}</div>
+          <div class="msg-meta">
+            <span>🕐 {{ m.zaman }}</span>
+            <span>{{ m.veri|length }} karakter</span>
+          </div>
+        </div>
+        <div class="msg-actions">
+          <form action="/sil/{{ m.id }}" method="POST" style="display:inline">
+            <button class="btn btn-danger" type="submit">Sil</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">
+        <div class="empty-icon">✉</div>
+        <div class="empty-text">Henüz mesaj yok</div>
+        <div class="empty-sub">Yukarıdaki formu kullanın</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>FlaskDB App · v1.0.0</span>
+    <div class="footer-links">
+      <a href="/api/status">API Status</a>
+      <a href="/api/mesajlar">JSON</a>
+      <a href="/api/db/istatistik">İstatistik</a>
+    </div>
+  </footer>
+
+</div>
+
+<!-- app.js — ES module olarak yükle -->
+<script type="module" src="/static/app.js"></script>
+
+<!-- Status metni güncelle (module yüklenmeden önce) -->
+<script>
+  document.getElementById('status-text').textContent = 'Bağlanıyor...';
+</script>
+</body>
+</html>
