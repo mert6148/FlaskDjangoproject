@@ -1,0 +1,7 @@
+{
+    "name": "system",
+    "version": "1.0.0",
+    "AWSTemplateFormatVersion": {
+        "version": "2010-09-09"
+    }
+}
