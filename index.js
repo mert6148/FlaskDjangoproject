@@ -47,5 +47,25 @@ function parseQueryParam(paramName) {
     return raw ? decodeURIComponent(raw) : null;
 }
 
+// ── Frontend otomasyon (proxy) ─────────────────────────────────────────────
+async function getIntegrationStatus() {
+    const res = await fetch("http://127.0.0.1:9000/api/status");
+    return res.ok ? res.json() : null;
+}
+
+async function setIntegrationMode(mode) {
+    const res = await fetch("http://127.0.0.1:9000/api/mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+    });
+    return res.ok ? res.json() : null;
+}
+
+async function proxyApi(path, options={}) {
+    const res = await fetch(`http://127.0.0.1:9000/api/proxy/${path}`, options);
+    return res.json();
+}
+
 // ── Dışa aktar ───────────────────────────────────────────────────────────────
-export { system, conditions, parseQueryParam };
+export { system, conditions, parseQueryParam, getIntegrationStatus, setIntegrationMode, proxyApi };

@@ -1,11 +1,23 @@
 import os
 import sys
 import zipfile
-from flask import Flask, render_template, request, redirect, url_for, jsonify
 import ipaddress
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "gizli-anahtar-degistir")
+
+MYSQL_URL = os.environ.get("MYSQL_DATABASE_URL") or os.environ.get("DATABASE_URL")
+if MYSQL_URL:
+    try:
+        engine = create_engine(MYSQL_URL, pool_pre_ping=True)
+    except SQLAlchemyError as e:
+        engine = None
+        print(f"[WARN] MySQL engine oluşturulamadı: {e}")
+else:
+    engine = None
 
 
 # ── Yardımcı: IPv4 adresi → packed bytes ─────────────────────────────────────
@@ -80,7 +92,20 @@ def index():
 
 @app.route("/api/status")
 def status():
-    return jsonify({"status": "ok", "version": "1.0.0"})
+    return jsonify({"status": "ok", "version": "1.0.0", "mysql_configured": bool(MYSQL_URL)})
+
+
+@app.route("/api/db-check")
+def db_check():
+    if engine is None:
+        return jsonify({"error": "MySQL bağlantı bilgisi mevcut değil"}), 503
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            ok = result.scalar() == 1
+            return jsonify({"ok": ok, "db_url": str(engine.url)})
+    except SQLAlchemyError as ex:
+        return jsonify({"error": str(ex)}), 500
 
 
 @app.errorhandler(404)

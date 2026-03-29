@@ -1,0 +1,36 @@
+version: "3.9"
+services:
+  db:
+    image: mysql:8.0
+    container_name: flaskdjango_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: flaskdjango
+      MYSQL_USER: flaskdjango
+      MYSQL_PASSWORD: flaskdjango
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: flaskdjango_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MYSQL_DATABASE_URL: "mysql+mysqlconnector://flaskdjango:flaskdjango@db:3306/flaskdjango"
+      MODE: "flask"
+      FLASK_ENV: "development"
+    ports:
+      - "9000:9000"
+      - "5000:5000"
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: ["python", "frontend_integration.py"]

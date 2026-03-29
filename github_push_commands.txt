@@ -1,0 +1,40 @@
+# GitHub Repo'ya İlk Yükleme ve Sonrası için Hızlı Komutlar
+
+# 1. Proje klasörüne git
+cd "c:\Users\mertd\OneDrive\Masaüstü\Flask-Django"
+
+# 2. Git deposunu başlat
+git init
+
+# 3. .gitignore ekle (varsa) / güncelle
+# - .gitignore zaten varsa bunları içermesine dikkat edin:
+#   __pycache__/, .venv/, .idea/, venv/, *.pyc, etc.
+
+# 4. Tüm dosyaları ekle
+git add .
+
+# 5. İlk commit
+git commit -m "İlk commit: Flask-Django proje dosyaları"
+
+# 6. Branch adını main yap
+git branch -M main
+
+# 7. GitHub uzak repo ekle
+# Kullanıcı değiştir: <KULLANICI_ADI>, <REPO_ADI>
+# Örnek: https://github.com/mert6148/FlaskDjangoproject.git
+git remote add origin https://github.com/mert6148/FlaskDjangoproject.git
+
+# 8. Değişiklikleri push et
+git push -u origin main
+
+# 9. Sonraki güncellemeler için (yeni commit + push)
+# Değişiklik yap ->
+# git add .
+# git commit -m "Güncelleme açıklaması"
+# git push origin main
+
+# 10. Farklı projeler için
+# ■ Yeni proje oluştururken aynı adımları kullanın
+# ■ Uzak repo URL'sini değiştirin
+# git remote add origin https://github.com/<KULLANICI_ADI>/<YENI_REPO>.git
+# git push -u origin main
