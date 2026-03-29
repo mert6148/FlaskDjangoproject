@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SRC Dökümantasyon — JavaScript · C# · Java</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:    #0c0e0f;
+  --surf:  #111416;
+  --lift:  #181c1f;
+  --bord:  #222729;
+  --bord2: #2e3438;
+  --js:    #f0db4f;
+  --cs:    #68217a;
+  --cs-l:  #9b4fb8;
+  --java:  #e76f00;
+  --py:    #3a86ff;
+  --text:  #dde5ec;
+  --muted: #637480;
+  --dim:   #3d4f5c;
+  --mono:  'DM Mono', monospace;
+  --serif: 'Fraunces', Georgia, serif;
+  --r:     10px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.65;overflow-x:hidden}
+
+/* ── Ambient glow ── */
+.glow{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 55% 35% at 75% 5%,rgba(104,33,122,.08) 0,transparent 70%),
+             radial-gradient(ellipse 45% 30% at 5%  85%,rgba(231,111,0,.06) 0,transparent 70%)}
+
+/* ── Shell ── */
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+
+/* ═══ SIDEBAR ═══ */
+.sidebar{width:260px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--bord);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-brand{padding:24px 22px 20px;border-bottom:1px solid var(--bord)}
+.sb-logo{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.sb-logo span{color:var(--js)}
+.sb-sub{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+.sb-ver{display:inline-block;margin-top:8px;font-size:9px;padding:2px 8px;border-radius:20px;
+  background:rgba(240,219,79,.1);color:var(--js);border:1px solid rgba(240,219,79,.2)}
+
+.sb-nav{flex:1;padding:14px 10px}
+.sb-section{margin-bottom:22px}
+.sb-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 12px;margin-bottom:6px}
+.sb-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 12px;
+  border-radius:7px;border:none;background:transparent;color:var(--muted);cursor:pointer;
+  font-family:var(--mono);font-size:12px;text-align:left;transition:all .15s}
+.sb-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.sb-item.active{background:rgba(240,219,79,.07);color:var(--js);outline:1px solid rgba(240,219,79,.18);outline-offset:-1px}
+.sb-item .lang-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-js{background:var(--js)}
+.dot-cs{background:var(--cs-l)}
+.dot-java{background:var(--java)}
+.dot-py{background:var(--py)}
+.dot-cfg{background:var(--dim)}
+.sb-item .badge{margin-left:auto;font-size:9px;padding:1px 6px;border-radius:10px;
+  background:rgba(255,255,255,.06);color:var(--muted)}
+
+.sb-footer{padding:14px 22px;border-top:1px solid var(--bord);font-size:10px;color:var(--muted)}
+.pulse-row{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.pulse{width:6px;height:6px;border-radius:50%;background:#3dffa0;animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ═══ MAIN ═══ */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{padding:16px 36px;border-bottom:1px solid var(--bord);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(12,14,15,.8);backdrop-filter:blur(14px);position:sticky;top:0;z-index:20}
+.topbar-title{font-family:var(--serif);font-size:17px;font-weight:300;letter-spacing:-.3px}
+.topbar-title strong{font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.lang-chip{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:20px;
+  border:1px solid;cursor:pointer;transition:all .15s;font-weight:500}
+.chip-js  {border-color:rgba(240,219,79,.3);color:var(--js);background:rgba(240,219,79,.06)}
+.chip-cs  {border-color:rgba(155,79,184,.3);color:var(--cs-l);background:rgba(155,79,184,.06)}
+.chip-java{border-color:rgba(231,111,0,.3); color:var(--java);background:rgba(231,111,0,.06)}
+.chip-py  {border-color:rgba(58,134,255,.3);color:var(--py);background:rgba(58,134,255,.06)}
+
+.content{padding:36px;flex:1;overflow-y:auto;max-width:960px}
+
+/* ── Tab panel ── */
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── Section ── */
+.section{margin-bottom:40px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.section-num{font-family:var(--mono);font-size:10px;color:var(--muted);
+  background:var(--lift);border:1px solid var(--bord);border-radius:6px;
+  padding:3px 9px;flex-shrink:0}
+.section-title{font-family:var(--serif);font-size:24px;font-weight:700;letter-spacing:-.5px}
+.section-sub{font-size:11px;color:var(--muted);margin-top:2px;margin-left:2px}
+
+/* ── Card ── */
+.card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);
+  overflow:hidden;margin-bottom:16px}
+.card-head{padding:13px 18px;border-bottom:1px solid var(--bord);
+  display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.3px}
+.card-right{display:flex;align-items:center;gap:8px}
+.card-body{padding:18px}
+
+/* ── Code block ── */
+.code-wrap{position:relative;background:var(--bg);border-radius:8px;overflow:hidden}
+.code-lang{position:absolute;top:10px;right:12px;font-size:9px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--muted);pointer-events:none}
+pre{padding:18px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.7;
+  color:#c9d6e3;tab-size:2}
+
+/* Syntax highlight */
+.k{color:#c792ea}.s{color:#c3e88d}.c{color:#546e7a;font-style:italic}
+.n{color:#82aaff}.t{color:var(--java)}.p{color:#89ddff}.num{color:#f78c6c}
+.kw-js{color:var(--js)}.kw-cs{color:var(--cs-l)}.kw-java{color:var(--java)}
+.kw-py{color:var(--py)}.doc{color:#546e7a;font-style:italic}
+
+/* ── Info grid ── */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.info-card{background:var(--lift);border:1px solid var(--bord);border-radius:var(--r);padding:14px 16px}
+.info-k{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.info-v{font-size:13px;font-weight:500}
+.info-v.js{color:var(--js)}.info-v.cs{color:var(--cs-l)}
+.info-v.java{color:var(--java)}.info-v.py{color:var(--py)}.info-v.g{color:#3dffa0}
+
+/* ── Fix table ── */
+.fix-table{width:100%;border-collapse:collapse}
+.fix-table th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+  text-align:left;padding:0 12px 10px;border-bottom:1px solid var(--bord)}
+.fix-table td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;vertical-align:top}
+.fix-table tr:hover td{background:rgba(255,255,255,.015)}
+.fix-tag{font-size:9px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+.tag-fix {background:rgba(61,255,160,.1);color:#3dffa0}
+.tag-warn{background:rgba(240,219,79,.1);color:var(--js)}
+.tag-del {background:rgba(255,82,82,.1);color:#ff5252}
+.tag-add {background:rgba(58,134,255,.1);color:var(--py)}
+.old-code{font-family:var(--mono);font-size:11px;color:#ff5252;background:rgba(255,82,82,.07);
+  padding:2px 6px;border-radius:4px;display:inline-block}
+.new-code{font-family:var(--mono);font-size:11px;color:#3dffa0;background:rgba(61,255,160,.07);
+  padding:2px 6px;border-radius:4px;display:inline-block}
+
+/* ── Method table ── */
+.method-table{width:100%;border-collapse:collapse}
+.method-table th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+  text-align:left;padding:0 12px 10px;border-bottom:1px solid var(--bord)}
+.method-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+.method-table tr:last-child td{border-bottom:none}
+.method-name{font-family:var(--mono);color:#82aaff;font-size:12px}
+.method-ret{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;
+  background:rgba(255,255,255,.06);color:var(--muted)}
+.method-desc{color:var(--text);font-size:12px}
+
+/* ── Overview table ── */
+.ov-table{width:100%;border-collapse:collapse}
+.ov-table th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+  text-align:left;padding:0 12px 10px;border-bottom:1px solid var(--bord)}
+.ov-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+.ov-table td:first-child{font-family:var(--mono);font-size:11px}
+.file-badge{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:4px;
+  background:var(--lift);border:1px solid var(--bord2);color:var(--muted)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bord2);border-radius:2px}
+
+/* ── Responsive ── */
+@media(max-width:820px){.sidebar{display:none}.content{padding:20px}}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="shell">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">src<span>/</span>doc</div>
+    <div class="sb-sub">Sistem Dökümantasyonu</div>
+    <span class="sb-ver">v1.0.0</span>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">
+      <div class="sb-label">Genel Bakış</div>
+      <button class="sb-item active" onclick="nav('overview')">
+        <span class="lang-dot dot-cfg"></span> Proje Özeti
+        <span class="badge">7 dosya</span>
+      </button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Kaynak Dosyalar</div>
+      <button class="sb-item" onclick="nav('js')">
+        <span class="lang-dot dot-js"></span> index.js
+        <span class="badge">JS</span>
+      </button>
+      <button class="sb-item" onclick="nav('cs')">
+        <span class="lang-dot dot-cs"></span> sys_controller.cs
+        <span class="badge">C#</span>
+      </button>
+      <button class="sb-item" onclick="nav('java')">
+        <span class="lang-dot dot-java"></span> system.java
+        <span class="badge">Java</span>
+      </button>
+      <button class="sb-item" onclick="nav('py')">
+        <span class="lang-dot dot-py"></span> system.py
+        <span class="badge">Python</span>
+      </button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Yapılandırma</div>
+      <button class="sb-item" onclick="nav('config')">
+        <span class="lang-dot dot-cfg"></span> config.json
+        <span class="badge">JSON</span>
+      </button>
+      <button class="sb-item" onclick="nav('system_json')">
+        <span class="lang-dot dot-cfg"></span> system.json
+        <span class="badge">JSON</span>
+      </button>
+      <button class="sb-item" onclick="nav('run')">
+        <span class="lang-dot dot-cfg"></span> run.bat
+        <span class="badge">BAT</span>
+      </button>
+    </div>
+  </nav>
+  <div class="sb-footer">
+    <div class="pulse-row"><span class="pulse"></span>Tüm dosyalar düzeltildi</div>
+    <div style="font-size:9px;color:var(--dim)">JavaScript · C# · Java · Python</div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-title"><strong>SRC</strong> Kaynak Dökümantasyonu</div>
+    <div class="topbar-right">
+      <span class="lang-chip chip-js">JavaScript</span>
+      <span class="lang-chip chip-cs">C#</span>
+      <span class="lang-chip chip-java">Java</span>
+      <span class="lang-chip chip-py">Python</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num">00</span>
+        <div><div class="section-title">Proje Özeti</div>
+          <div class="section-sub">7 kaynak dosya · 4 programlama dili · AWS CloudFormation destekli</div></div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-card"><div class="info-k">Proje</div><div class="info-v g">SRC App</div></div>
+        <div class="info-card"><div class="info-k">Versiyon</div><div class="info-v js">1.0.0</div></div>
+        <div class="info-card"><div class="info-k">Toplam Dosya</div><div class="info-v g">7</div></div>
+        <div class="info-card"><div class="info-k">Dil Sayısı</div><div class="info-v java">4</div></div>
+        <div class="info-card"><div class="info-k">Düzeltilen Hata</div><div class="info-v java">12</div></div>
+        <div class="info-card"><div class="info-k">Lisans</div><div class="info-v cs">MIT</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">Dosya Envanteri</span></div>
+        <div class="card-body" style="padding:0">
+          <table class="ov-table">
+            <thead><tr><th>Dosya</th><th>Dil</th><th>Sınıf / Modül</th><th>Durum</th><th>Açıklama</th></tr></thead>
+            <tbody>
+              <tr><td>index.js</td><td><span class="lang-chip chip-js" style="padding:2px 8px;font-size:9px">JS</span></td><td style="font-family:var(--mono);font-size:11px">output, setById</td><td><span class="fix-tag tag-fix">Düzeltildi</span></td><td>Sistem meta DOM katmanı</td></tr>
+              <tr><td>sys_controller.cs</td><td><span class="lang-chip chip-cs" style="padding:2px 8px;font-size:9px">C#</span></td><td style="font-family:var(--mono);font-size:11px">SysController</td><td><span class="fix-tag tag-fix">Düzeltildi</span></td><td>ASP.NET Core MVC denetleyicisi</td></tr>
+              <tr><td>system.java</td><td><span class="lang-chip chip-java" style="padding:2px 8px;font-size:9px">Java</span></td><td style="font-family:var(--mono);font-size:11px">AppSystem</td><td><span class="fix-tag tag-fix">Düzeltildi</span></td><td>Sistem kodu üretici</td></tr>
+              <tr><td>system.py</td><td><span class="lang-chip chip-py" style="padding:2px 8px;font-size:9px">Py</span></td><td style="font-family:var(--mono);font-size:11px">System, Program</td><td><span class="fix-tag tag-fix">Düzeltildi</span></td><td>Sistem bilgisi yardımcıları</td></tr>
+              <tr><td>config.json</td><td><span class="file-badge">JSON</span></td><td style="font-family:var(--mono);font-size:11px">AWS CFN Config</td><td><span class="fix-tag tag-fix">Düzeltildi</span></td><td>CloudFormation yapılandırması</td></tr>
+              <tr><td>system.json</td><td><span class="file-badge">JSON</span></td><td style="font-family:var(--mono);font-size:11px">package.json</td><td><span class="fix-tag tag-add">Mevcut</span></td><td>Node.js paket tanımı</td></tr>
+              <tr><td>run.bat</td><td><span class="file-badge">BAT</span></td><td style="font-family:var(--mono);font-size:11px">Windows launcher</td><td><span class="fix-tag tag-fix">Düzeltildi</span></td><td>Node.js başlatma betiği</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tüm düzeltmeler özeti -->
+      <div class="card">
+        <div class="card-head"><span class="card-title">Tüm Düzeltmeler</span><span class="fix-tag tag-fix">12 düzeltme</span></div>
+        <div class="card-body" style="padding:0">
+          <table class="fix-table">
+            <thead><tr><th>Dosya</th><th>Tür</th><th>Orijinal</th><th>Düzeltme</th></tr></thead>
+            <tbody>
+              <tr><td>index.js</td><td><span class="fix-tag tag-del">SİL</span></td><td><span class="old-code">cancelAnimationFrame</span></td><td>Anlamsız atama kaldırıldı</td></tr>
+              <tr><td>index.js</td><td><span class="fix-tag tag-del">SİL</span></td><td><span class="old-code">system.author</span> (yoktu)</td><td><span class="new-code">system.author ?? 'Bilinmiyor'</span></td></tr>
+              <tr><td>index.js</td><td><span class="fix-tag tag-fix">BİRLEŞTİR</span></td><td>4× DOMContentLoaded</td><td>Tek listener'da toplandı</td></tr>
+              <tr><td>sys_controller.cs</td><td><span class="fix-tag tag-fix">YENİDEN AD</span></td><td><span class="old-code">sys_controller</span></td><td><span class="new-code">SysController</span></td></tr>
+              <tr><td>sys_controller.cs</td><td><span class="fix-tag tag-fix">YENİDEN AD</span></td><td><span class="old-code">namespace sys</span></td><td><span class="new-code">namespace Sys</span></td></tr>
+              <tr><td>sys_controller.cs</td><td><span class="fix-tag tag-add">EKLE</span></td><td>—</td><td>Durum + Versiyon endpoint'leri eklendi</td></tr>
+              <tr><td>system.java</td><td><span class="fix-tag tag-fix">YENİDEN AD</span></td><td><span class="old-code">class system</span></td><td><span class="new-code">class AppSystem</span> (çakışma önlendi)</td></tr>
+              <tr><td>system.java</td><td><span class="fix-tag tag-add">EKLE</span></td><td>—</td><td><span class="new-code">gecerliMi()</span> doğrulama metodu</td></tr>
+              <tr><td>system.java</td><td><span class="fix-tag tag-add">EKLE</span></td><td>—</td><td>Tam Javadoc dökümantasyonu</td></tr>
+              <tr><td>system.py</td><td><span class="fix-tag tag-del">SİL</span></td><td><span class="old-code">import s2clientprotocol</span></td><td>Gereksiz import kaldırıldı</td></tr>
+              <tr><td>system.py</td><td><span class="fix-tag tag-fix">DÜZELTİLDİ</span></td><td><span class="old-code">def Progressbar(): staticmethod</span></td><td><span class="new-code">@staticmethod</span> decorator</td></tr>
+              <tr><td>config.json</td><td><span class="fix-tag tag-fix">DÜZELTİLDİ</span></td><td>Eksik virgül (geçersiz JSON)</td><td>Sözdizimi düzeltildi</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ JAVASCRIPT ══ -->
+  <div class="tab-panel" id="tab-js">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num" style="border-color:rgba(240,219,79,.3);color:var(--js)">JS</span>
+        <div><div class="section-title">index.js</div>
+          <div class="section-sub">Sistem meta verisi DOM yönetimi · Node.js + Tarayıcı uyumlu</div></div>
+      </div>
+      <div class="info-grid">
+        <div class="info-card"><div class="info-k">Modül Tipi</div><div class="info-v js">CommonJS</div></div>
+        <div class="info-card"><div class="info-k">Export</div><div class="info-v js">system, output, name, version, author</div></div>
+        <div class="info-card"><div class="info-k">Bağımlılık</div><div class="info-v g">system.json</div></div>
+        <div class="info-card"><div class="info-k">Düzeltilen</div><div class="info-v java">3 hata</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Düzeltilmiş Kaynak</span><span class="lang-chip chip-js">JavaScript</span></div>
+        <div class="card-body" style="padding:0">
+          <div class="code-wrap"><span class="code-lang">js</span>
+<pre><span class="c">// index.js — Sistem Modülü İstemci Katmanı</span>
+<span class="c">// Düzeltmeler: tekrarlayan listener'lar birleştirildi,</span>
+<span class="c">// cancelAnimationFrame kaldırıldı, author null koruması eklendi</span>
+
+<span class="k">"use strict"</span>;
+
+<span class="k">const</span> <span class="n">system</span> = <span class="n">require</span>(<span class="s">"./system.json"</span>);
+
+<span class="k">const</span> name                   = system.name;
+<span class="k">const</span> version                = system.version;
+<span class="k">const</span> author                 = system.author ?? <span class="s">"Bilinmiyor"</span>;
+<span class="k">const</span> AWSTemplateFormatVersion = system.AWSTemplateFormatVersion ?? <span class="k">null</span>;
+
+<span class="c">/** Standart çıktı nesnesi */</span>
+<span class="k">const</span> output = {
+  system: { name, version, author, AWSTemplateFormatVersion }
+};
+
+<span class="c">// Tüm DOM işlemleri tek listener'da toplandı</span>
+document.<span class="n">addEventListener</span>(<span class="s">"DOMContentLoaded"</span>, () => {
+  <span class="k">function</span> <span class="n">setById</span>(id, value) {
+    <span class="k">const</span> el = document.<span class="n">getElementById</span>(id);
+    <span class="k">if</span> (el) el.textContent = value;
+  }
+
+  <span class="k">const</span> outputEl = document.<span class="n">getElementById</span>(<span class="s">"output"</span>);
+  <span class="k">if</span> (outputEl) outputEl.textContent = JSON.<span class="n">stringify</span>(output, <span class="k">null</span>, <span class="num">2</span>);
+
+  <span class="n">setById</span>(<span class="s">"name"</span>,    name);
+  <span class="n">setById</span>(<span class="s">"version"</span>, version);
+  <span class="n">setById</span>(<span class="s">"author"</span>,  author);
+});
+
+module.exports = { system, output, name, version, author };</pre>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Dışa Aktarılan Değerler</span></div>
+        <div class="card-body" style="padding:0">
+          <table class="method-table">
+            <thead><tr><th>İsim</th><th>Tür</th><th>Kaynak</th><th>Açıklama</th></tr></thead>
+            <tbody>
+              <tr><td class="method-name">name</td><td><span class="method-ret">string</span></td><td><code style="font-size:11px;color:var(--muted)">system.json</code></td><td class="method-desc">Uygulama adı</td></tr>
+              <tr><td class="method-name">version</td><td><span class="method-ret">string</span></td><td><code style="font-size:11px;color:var(--muted)">system.json</code></td><td class="method-desc">Semantik versiyon</td></tr>
+              <tr><td class="method-name">author</td><td><span class="method-ret">string</span></td><td><code style="font-size:11px;color:var(--muted)">system.json</code></td><td class="method-desc">Yazar (bulunamazsa "Bilinmiyor")</td></tr>
+              <tr><td class="method-name">output</td><td><span class="method-ret">Object</span></td><td><code style="font-size:11px;color:var(--muted)">hesaplanan</code></td><td class="method-desc">Standart çıktı sarmalayıcısı</td></tr>
+              <tr><td class="method-name">setById()</td><td><span class="method-ret">void</span></td><td><code style="font-size:11px;color:var(--muted)">iç</code></td><td class="method-desc">ID'ye göre DOM elemanı günceller</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ C# ══ -->
+  <div class="tab-panel" id="tab-cs">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num" style="border-color:rgba(155,79,184,.3);color:var(--cs-l)">C#</span>
+        <div><div class="section-title">sys_controller.cs</div>
+          <div class="section-sub">ASP.NET Core MVC · Rota: /sys · 4 endpoint</div></div>
+      </div>
+      <div class="info-grid">
+        <div class="info-card"><div class="info-k">Namespace</div><div class="info-v cs">Sys</div></div>
+        <div class="info-card"><div class="info-k">Sınıf</div><div class="info-v cs">SysController</div></div>
+        <div class="info-card"><div class="info-k">Base</div><div class="info-v cs">Controller</div></div>
+        <div class="info-card"><div class="info-k">Düzeltilen</div><div class="info-v java">3 hata</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Düzeltilmiş Kaynak</span><span class="lang-chip chip-cs">C#</span></div>
+        <div class="card-body" style="padding:0">
+          <div class="code-wrap"><span class="code-lang">c#</span>
+<pre><span class="doc">/// &lt;summary&gt;</span>
+<span class="doc">/// SysController — Sistem bilgilerini sunan ASP.NET Core denetleyicisi.</span>
+<span class="doc">/// Rota: /sys  |  Endpoint'ler: Index, Durum, Versiyon, Error</span>
+<span class="doc">/// &lt;/summary&gt;</span>
+[<span class="t">ApiController</span>]
+[<span class="t">Route</span>(<span class="s">"[controller]"</span>)]
+<span class="kw-cs">public class</span> <span class="t">SysController</span> : <span class="t">Controller</span>
+{
+  <span class="kw-cs">private readonly</span> <span class="t">ILogger</span>&lt;<span class="t">SysController</span>&gt; _logger;
+
+  <span class="kw-cs">public</span> <span class="n">SysController</span>(<span class="t">ILogger</span>&lt;<span class="t">SysController</span>&gt; logger)
+    => _logger = logger ?? <span class="kw-cs">throw new</span> <span class="t">ArgumentNullException</span>(<span class="n">nameof</span>(logger));
+
+  <span class="doc">/// GET /sys — Ana görünüm</span>
+  [<span class="t">HttpGet</span>]
+  <span class="kw-cs">public</span> <span class="t">IActionResult</span> <span class="n">Index</span>() => <span class="n">View</span>();
+
+  <span class="doc">/// GET /sys/durum — Sistem durumu JSON</span>
+  [<span class="t">HttpGet</span>(<span class="s">"durum"</span>)]
+  <span class="kw-cs">public</span> <span class="t">IActionResult</span> <span class="n">Durum</span>() => <span class="n">Ok</span>(<span class="kw-cs">new</span> {
+    durum  = <span class="s">"çalışıyor"</span>,
+    zaman  = <span class="t">DateTime</span>.UtcNow.ToString(<span class="s">"o"</span>),
+    makine = <span class="t">Environment</span>.MachineName
+  });
+
+  <span class="doc">/// GET /sys/versiyon — Versiyon bilgisi</span>
+  [<span class="t">HttpGet</span>(<span class="s">"versiyon"</span>)]
+  <span class="kw-cs">public</span> <span class="t">IActionResult</span> <span class="n">Versiyon</span>() => <span class="n">Ok</span>(<span class="kw-cs">new</span> {
+    uygulama = <span class="s">"1.0.0"</span>,
+    dotnet   = <span class="t">Environment</span>.Version.ToString(),
+    os       = <span class="t">Environment</span>.OSVersion.VersionString
+  });
+
+  <span class="doc">/// GET /sys/hata — Hata sayfası</span>
+  [<span class="t">HttpGet</span>(<span class="s">"hata"</span>)]
+  [<span class="t">ResponseCache</span>(Duration = <span class="num">0</span>, NoStore = <span class="kw-cs">true</span>)]
+  <span class="kw-cs">public</span> <span class="t">IActionResult</span> <span class="n">Error</span>() => <span class="n">View</span>(<span class="s">"Error"</span>);
+}</pre>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Endpoint Tablosu</span></div>
+        <div class="card-body" style="padding:0">
+          <table class="method-table">
+            <thead><tr><th>Method</th><th>Rota</th><th>Dönüş</th><th>Açıklama</th></tr></thead>
+            <tbody>
+              <tr><td><span class="fix-tag tag-add">GET</span></td><td class="method-name">/sys</td><td><span class="method-ret">View()</span></td><td class="method-desc">Index.cshtml görünümü</td></tr>
+              <tr><td><span class="fix-tag tag-add">GET</span></td><td class="method-name">/sys/durum</td><td><span class="method-ret">JSON</span></td><td class="method-desc">durum · zaman · makine · pid</td></tr>
+              <tr><td><span class="fix-tag tag-add">GET</span></td><td class="method-name">/sys/versiyon</td><td><span class="method-ret">JSON</span></td><td class="method-desc">uygulama · dotnet · os</td></tr>
+              <tr><td><span class="fix-tag tag-warn">GET</span></td><td class="method-name">/sys/hata</td><td><span class="method-ret">View()</span></td><td class="method-desc">Error.cshtml — önbelleksiz</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ JAVA ══ -->
+  <div class="tab-panel" id="tab-java">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num" style="border-color:rgba(231,111,0,.3);color:var(--java)">Java</span>
+        <div><div class="section-title">system.java → AppSystem.java</div>
+          <div class="section-sub">Sistem kodu üretici · Java 17+ uyumlu</div></div>
+      </div>
+      <div class="info-grid">
+        <div class="info-card"><div class="info-k">Sınıf</div><div class="info-v java">AppSystem</div></div>
+        <div class="info-card"><div class="info-k">Paket</div><div class="info-v java">varsayılan</div></div>
+        <div class="info-card"><div class="info-k">Java</div><div class="info-v java">17+</div></div>
+        <div class="info-card"><div class="info-k">Çıktı</div><div class="info-v g">SYS-{zaman}-{uuid}</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Düzeltilmiş Kaynak + Javadoc</span><span class="lang-chip chip-java">Java</span></div>
+        <div class="card-body" style="padding:0">
+          <div class="code-wrap"><span class="code-lang">java</span>
+<pre><span class="doc">/**
+ * AppSystem — Sistem kodu üretici sınıf.
+ *
+ * Örnek çıktı: SYS-20251029143022-a3f9c1d8
+ *
+ * ⚠ Orijinal class adı 'system' java.lang.System ile çakışıyordu.
+ *    Yeni ad: AppSystem
+ *
+ * @version 1.0.0
+ */</span>
+<span class="kw-java">public class</span> <span class="t">AppSystem</span> {
+
+  <span class="kw-java">private static final</span> <span class="t">String</span> ONEK = <span class="s">"SYS"</span>;
+  <span class="kw-java">private static final</span> <span class="t">DateTimeFormatter</span> FMT =
+    <span class="t">DateTimeFormatter</span>.ofPattern(<span class="s">"yyyyMMddHHmmss"</span>);
+
+  <span class="doc">/** Giriş noktası */</span>
+  <span class="kw-java">public static void</span> <span class="n">main</span>(<span class="t">String</span>[] args) {
+    <span class="t">System</span>.out.println(<span class="s">"Üretilen: "</span> + <span class="n">generateSystemCode</span>());
+  }
+
+  <span class="doc">/**
+   * Tekil sistem kodu üretir.
+   * Biçim: SYS-{yyyyMMddHHmmss}-{uuid[0..8]}
+   *
+   * @return Tekil sistem kodu
+   */</span>
+  <span class="kw-java">public static</span> <span class="t">String</span> <span class="n">generateSystemCode</span>() {
+    <span class="t">String</span> zaman    = <span class="t">LocalDateTime</span>.now().format(FMT);
+    <span class="t">String</span> uuidPart = <span class="t">UUID</span>.randomUUID().toString().substring(<span class="num">0</span>, <span class="num">8</span>);
+    <span class="kw-java">return</span> ONEK + <span class="s">"-"</span> + zaman + <span class="s">"-"</span> + uuidPart;
+  }
+
+  <span class="doc">/**
+   * Kod biçimini doğrular: SYS-14rakam-8hexkarakter
+   *
+   * @param  kod Doğrulanacak string
+   * @return true → geçerli
+   */</span>
+  <span class="kw-java">public static boolean</span> <span class="n">gecerliMi</span>(<span class="t">String</span> kod) {
+    <span class="kw-java">if</span> (kod == <span class="kw-java">null</span>) <span class="kw-java">throw new</span> <span class="t">IllegalArgumentException</span>(<span class="s">"null olamaz"</span>);
+    <span class="kw-java">return</span> kod.matches(<span class="s">"^SYS-\\d{14}-[a-f0-9]{8}$"</span>);
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Metot Referansı</span></div>
+        <div class="card-body" style="padding:0">
+          <table class="method-table">
+            <thead><tr><th>Metot</th><th>Dönüş</th><th>Açıklama</th></tr></thead>
+            <tbody>
+              <tr><td class="method-name">main(String[] args)</td><td><span class="method-ret">void</span></td><td class="method-desc">Giriş noktası, örnek kod üretir ve basar</td></tr>
+              <tr><td class="method-name">generateSystemCode()</td><td><span class="method-ret">String</span></td><td class="method-desc">SYS-{zaman}-{uuid8} biçiminde tekil kod üretir</td></tr>
+              <tr><td class="method-name">gecerliMi(String)</td><td><span class="method-ret">boolean</span></td><td class="method-desc">Regex ile kod biçimini doğrular</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PYTHON ══ -->
+  <div class="tab-panel" id="tab-py">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num" style="border-color:rgba(58,134,255,.3);color:var(--py)">Py</span>
+        <div><div class="section-title">system.py</div>
+          <div class="section-sub">Sistem bilgisi · Python 3.10+ uyumlu</div></div>
+      </div>
+      <div class="info-grid">
+        <div class="info-card"><div class="info-k">Sınıflar</div><div class="info-v py">System, Program</div></div>
+        <div class="info-card"><div class="info-k">Düzeltilen</div><div class="info-v java">3 hata</div></div>
+        <div class="info-card"><div class="info-k">Kaldırılan</div><div class="info-v java">s2clientprotocol, sc2reader</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Düzeltilmiş Kaynak</span><span class="lang-chip chip-py">Python</span></div>
+        <div class="card-body" style="padding:0">
+          <div class="code-wrap"><span class="code-lang">python</span>
+<pre><span class="doc">"""
+system.py — Sistem Yardımcıları
+Düzeltmeler:
+  - s2clientprotocol / sc2reader import'ları kaldırıldı
+  - Program.Progressbar(): staticmethod sözdizimi düzeltildi
+  - assert_line_data @staticmethod decorator eklendi
+"""</span>
+<span class="kw-py">import</span> os, sys, platform
+<span class="kw-py">from</span> datetime <span class="kw-py">import</span> datetime
+
+
+<span class="kw-py">class</span> <span class="t">System</span>:
+  <span class="doc">"""Sistem bilgisi ve yardımcı metotları içeren sınıf."""</span>
+
+  <span class="kw-py">def</span> <span class="n">main</span>(<span class="k">self</span>) -> <span class="k">None</span>:
+    <span class="doc">"""Sistem bilgilerini ekrana basar."""</span>
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    <span class="n">print</span>(<span class="s">f"Dizin  : </span>{dir_path}<span class="s">"</span>)
+    <span class="n">print</span>(<span class="s">f"Python : </span>{sys.version.split()[<span class="num">0</span>]}<span class="s">"</span>)
+    <span class="n">print</span>(<span class="s">f"OS     : </span>{platform.system()} {platform.release()}<span class="s">"</span>)
+
+  <span class="k">@staticmethod</span>
+  <span class="kw-py">def</span> <span class="n">assert_line_data</span>(flag: <span class="t">int</span> = <span class="num">1</span>) -> <span class="k">None</span>:
+    <span class="doc">"""
+    Bayrak değerini doğrular.
+    :param flag: Kontrol edilecek değer (varsayılan: 1)
+    :raises AssertionError: flag 1 değilse
+    """</span>
+    <span class="kw-py">assert</span> flag == <span class="num">1</span>, <span class="s">"Flag 1 olmalıdır!"</span>
+
+
+<span class="kw-py">class</span> <span class="t">Program</span>:
+  <span class="doc">"""Uygulama başlatıcı."""</span>
+
+  <span class="k">@staticmethod</span>           <span class="c"># ← orijinalde sözdizimi hatasıydı</span>
+  <span class="kw-py">def</span> <span class="n">progressbar</span>(toplam: <span class="t">int</span> = <span class="num">10</span>) -> <span class="k">None</span>:
+    <span class="doc">"""Metin tabanlı ilerleme çubuğu."""</span>
+    <span class="kw-py">import</span> time
+    <span class="kw-py">for</span> i <span class="kw-py">in</span> <span class="n">range</span>(toplam + <span class="num">1</span>):
+      bar = <span class="s">"█"</span> * i + <span class="s">"░"</span> * (toplam - i)
+      <span class="n">print</span>(<span class="s">f"\r[</span>{bar}<span class="s">] </span>{i}<span class="s">/</span>{toplam}<span class="s">"</span>, end=<span class="s">""</span>, flush=<span class="k">True</span>)
+      time.sleep(<span class="num">0.05</span>)
+    <span class="n">print</span>()
+
+  <span class="k">@staticmethod</span>
+  <span class="kw-py">def</span> <span class="n">main</span>() -> <span class="k">None</span>:
+    <span class="t">System</span>().<span class="n">main</span>()
+    <span class="t">System</span>.<span class="n">assert_line_data</span>(<span class="num">1</span>)
+
+
+<span class="kw-py">if</span> __name__ == <span class="s">"__main__"</span>:
+  <span class="t">Program</span>.<span class="n">main</span>()</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONFIG ══ -->
+  <div class="tab-panel" id="tab-config">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num">CFG</span>
+        <div><div class="section-title">config.json</div>
+          <div class="section-sub">AWS CloudFormation yapılandırması · Sözdizimi düzeltildi</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Düzeltilmiş config.json</span><span class="fix-tag tag-fix">Virgül eklendi</span></div>
+        <div class="card-body" style="padding:0">
+          <div class="code-wrap"><span class="code-lang">json</span>
+<pre>{
+  <span class="s">"name"</span>: <span class="s">"app"</span>,
+  <span class="s">"version"</span>: <span class="s">"1.0.0"</span>,
+  <span class="s">"AWSTemplateFormatVersion"</span>: {
+    <span class="s">"description"</span>: <span class="s">"2010-09-09"</span>
+  }<span class="kw-java">,</span>  <span class="c">← Eksik virgül eklendi</span>
+  <span class="s">"Conditions"</span>: {
+    <span class="s">"IsProduction"</span>: {
+      <span class="s">"Fn::Equals"</span>: [{ <span class="s">"Ref"</span>: <span class="s">"Environment"</span> }, <span class="s">"production"</span>]
+    }
+  },
+  <span class="s">"Parameters"</span>: {
+    <span class="s">"Environment"</span>: {
+      <span class="s">"Type"</span>: <span class="s">"String"</span>,
+      <span class="s">"Default"</span>: <span class="s">"development"</span>,
+      <span class="s">"AllowedValues"</span>: [<span class="s">"production"</span>,<span class="s">"staging"</span>,<span class="s">"development"</span>],
+      <span class="s">"Description"</span>: <span class="s">"Hedef dağıtım ortamı"</span>
+    }
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SYSTEM.JSON ══ -->
+  <div class="tab-panel" id="tab-system_json">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num">PKG</span>
+        <div><div class="section-title">system.json</div>
+          <div class="section-sub">Node.js paket tanımı · index.js tarafından require() ile yüklenir</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">system.json içeriği</span><span class="fix-tag tag-add">Mevcut</span></div>
+        <div class="card-body" style="padding:0">
+          <div class="code-wrap"><span class="code-lang">json</span>
+<pre>{
+  <span class="s">"name"</span>:    <span class="s">"system"</span>,
+  <span class="s">"version"</span>: <span class="s">"1.0.0"</span>,
+  <span class="s">"description"</span>: <span class="s">"System information and utilities"</span>,
+  <span class="s">"main"</span>:   <span class="s">"index.js"</span>,
+  <span class="s">"scripts"</span>: { <span class="s">"start"</span>: <span class="s">"node index.js"</span> },
+  <span class="s">"author"</span>:  <span class="s">"Your Name"</span>,
+  <span class="s">"license"</span>: <span class="s">"MIT"</span>,
+  <span class="s">"dependencies"</span>: { <span class="s">"os"</span>: <span class="s">"^0.1.1"</span> }
+}</pre>
+          </div>
+        </div>
+      </div>
+      <div class="info-grid">
+        <div class="info-card"><div class="info-k">index.js'de kullanılan alan</div><div class="info-v js">name, version, author</div></div>
+        <div class="info-card"><div class="info-k">Eksik alan</div><div class="info-v java">AWSTemplateFormatVersion</div></div>
+        <div class="info-card"><div class="info-k">Öneri</div><div class="info-v g">config.json ile birleştir</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RUN.BAT ══ -->
+  <div class="tab-panel" id="tab-run">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num">BAT</span>
+        <div><div class="section-title">run.bat</div>
+          <div class="section-sub">Windows başlatıcı · Node.js + sistem kontrol</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Düzeltilmiş run.bat</span><span class="fix-tag tag-fix">Düzeltildi</span></div>
+        <div class="card-body" style="padding:0">
+          <div class="code-wrap"><span class="code-lang">bat</span>
+<pre><span class="c">@echo off</span>
+<span class="c">REM run.bat — Düzeltmeler:</span>
+<span class="c">REM   run%data% geçersiz değişken kaldırıldı</span>
+<span class="c">REM   echo( hatalı sözdizimi düzeltildi</span>
+<span class="c">REM   Node.js ve dosya varlığı kontrolleri eklendi</span>
+
+<span class="kw-java">setlocal</span>
+<span class="kw-java">echo</span>  ================================
+<span class="kw-java">echo</span>  ============= SRC ==============
+<span class="kw-java">echo</span>  ================================
+<span class="kw-java">echo</span>  Kullanici : <span class="n">%USERNAME%</span>
+<span class="kw-java">echo</span>  Tarih     : <span class="n">%DATE%  %TIME%</span>
+<span class="kw-java">echo</span>  ================================
+
+<span class="c">REM Node.js kontrolü</span>
+<span class="kw-java">where</span> node <span class="k">>nul 2>&1</span>
+<span class="kw-java">if</span> <span class="n">%ERRORLEVEL%</span> neq 0 (
+  <span class="kw-java">echo</span>  [!!] Node.js bulunamadi
+  pause & <span class="kw-java">exit</span> /b 1
+)
+
+<span class="c">REM Dosya kontrolü</span>
+<span class="kw-java">if not exist</span> <span class="s">"%~dp0src\index.js"</span> (
+  <span class="kw-java">echo</span>  [!!] src\index.js bulunamadi
+  pause & <span class="kw-java">exit</span> /b 1
+)
+
+node <span class="s">"%~dp0src\index.js"</span>
+<span class="kw-java">endlocal</span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+function nav(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('tab-' + id);
+  if (panel) panel.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b => {
+    if (b.getAttribute('onclick') === `nav('${id}')`) b.classList.add('active');
+  });
+}
+</script>
+</body>
+</html>
