@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlaskDjango Dokümantasyon</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #111827; color: #e5e7eb; margin: 0; padding: 24px; }
+    .menu { background: #1f2937; border-radius: 12px; padding: 20px; max-width: 900px; margin: auto; }
+    .menu a { display: inline-block; margin-right: 14px; color: #60a5fa; text-decoration: none; border: 1px solid #334155; border-radius: 8px; padding: 8px 12px; }
+    .menu a:hover { border-color: #2563eb; color: #bfdbfe; }
+    .content { max-width: 900px; margin: 20px auto 0; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="menu">
+    <a href="documentation.html">Genel Dokümantasyon</a>
+    <a href="api.html">API Dokümantasyonu</a>
+    <a href="setup.html">Kurulum</a>
+    <a href="python_overview.md">Python Dokümantasyon</a>
+  </div>
+  <div class="content">
+    <h1>FlaskDjango Proje Dokümantasyonu</h1>
+    <p>Bu dizin, uygulama açıklaması, API uç noktaları ve kurulum adımlarını merkezileştirmek için tasarlanmıştır. Üst menüden hedef belgeleri seçin.</p>
+    <p><strong>Öneri:</strong> `auth/main.py` içinde Flask/Django koruma katmanları ve `sys/src` içinde eklenmiş .bat/.ps1 scriptlerini inceleyin.</p>
+
+    <div style="margin-top: 20px; padding: 16px; background: #1f2937; border-radius: 10px;">
+      <h2 style="color: #93c5fd;">Frontend Otomasyon Kontrolü</h2>
+      <button id="btn-flask" style="margin-right:12px;">Flask modunu seç</button>
+      <button id="btn-django" style="margin-right:12px;">Django modunu seç</button>
+      <button id="btn-status">Durum Getsin</button>
+      <div id="automation-status" style="margin-top: 10px; color: #d1d5db;"></div>
+    </div>
+  </div>
+  <script src="docs.js"></script>
+  <script>
+    async function updateStatus() {
+      try {
+        const res = await fetch('http://127.0.0.1:9000/api/status');
+        const data = await res.json();
+        document.getElementById('automation-status').textContent = JSON.stringify(data);
+      } catch (e) {
+        document.getElementById('automation-status').textContent = 'Bağlantı yok: ' + e.message;
+      }
+    }
+
+    document.getElementById('btn-flask').addEventListener('click', async () => {
+      await fetch('http://127.0.0.1:9000/api/mode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'flask' }) });
+      await updateStatus();
+    });
+    document.getElementById('btn-django').addEventListener('click', async () => {
+      await fetch('http://127.0.0.1:9000/api/mode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'django' }) });
+      await updateStatus();
+    });
+    document.getElementById('btn-status').addEventListener('click', updateStatus);
+    updateStatus();
+  </script>
+</body>
+</html>

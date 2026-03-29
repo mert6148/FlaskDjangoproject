@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlaskDjango API Dokümantasyonu</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 24px; }
+      .card { border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px; margin-bottom: 16px; background: white; }
+      h1, h2 { color: #1e293b; }
+      pre { background: #e2e8f0; border-radius: 8px; padding: 12px; overflow-x:auto; }
+      code { font-family: "JetBrains Mono", monospace; }
+      nav a { text-decoration: none; color: #2563eb; }
+      nav a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+  <nav><a href="index.html">← Ana Dizin</a></nav>
+  <h1>API Uç Noktaları</h1>
+
+  <div class="card">
+    <h2>Flask API</h2>
+    <ul>
+      <li>GET /api/kullanicilar</li>
+      <li>POST /api/kullanicilar  - {"ad":"...","email":"..."}</li>
+      <li>GET /api/kullanicilar/&lt;id&gt;</li>
+      <li>PUT /api/kullanicilar/&lt;id&gt;</li>
+      <li>DELETE /api/kullanicilar/&lt;id&gt;</li>
+      <li>GET /api/urunler</li>
+      <li>POST /api/urunler  - {"isim":"...","fiyat":...,"kullanici_id":...}</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Django API</h2>
+    <ul>
+      <li>GET /api/kategoriler/</li>
+      <li>GET /api/urunler/</li>
+      <li>GET /api/urunler/stok_yok/</li>
+      <li>POST /api/urunler/&lt;id&gt;/stok_ekle/  - {"miktar":50}</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Veritabanı Kontrolleri</h2>
+    <ul>
+      <li>GET /api/db-check  (Flask MySQL/SQLite bağlantı kontrolü)</li>
+      <li>GET /api/status  (genel sistem durumu)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Örnek JavaScript Kullanımı</h2>
+    <pre><code>async function fetchKullanicilar() {
+  const res = await fetch('/api/kullanicilar');
+  const data = await res.json();
+  console.log(data);
+}
+
+async function kullaniciEkle(ad, email) {
+  const res = await fetch('/api/kullanicilar', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ad, email})
+  });
+  return res.json();
+}</code></pre>
+  </div>
+
+  <script>
+    console.log('API dokümantasyonu yüklendi');
+  </script>
+</body>
+</html>

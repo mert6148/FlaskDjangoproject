@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlaskDjango Kurulum</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 24px; }
+      .card { border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px; background: white; margin-bottom: 16px; }
+      h1, h2 { color: #1e293b; }
+      pre { background: #e2e8f0; border-radius: 8px; padding: 12px; overflow-x:auto; }
+    </style>
+</head>
+<body>
+  <a href="index.html">← Ana Dizin</a>
+  <h1>Kurulum Adımları</h1>
+  <div class="card">
+    <h2>Ortam</h2>
+    <pre><code>python -m venv .venv
+.venv\Scripts\activate
+pip install -r auth/Flask-Django_python/requirements.txt
+pip install django djangorestframework</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Flask Başlat</h2>
+    <pre><code>SET MODE=flask
+python auth/main.py</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Django Başlat</h2>
+    <pre><code>SET MODE=django
+python auth/main.py migrate
+python auth/main.py runserver 0.0.0.0:8000</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>MySQL Bağlantısı</h2>
+    <p>Ortam değişkeni olarak MySQL bağlantısını ayarlayın:</p>
+    <pre><code>set MYSQL_DATABASE_URL=mysql+mysqlconnector://kullanici:sifre@127.0.0.1:3306/dbadi</code></pre>
+    <p>Flask için genel DB check: <code>GET /api/db-check</code></p>
+  </div>
+
+  <div class="card">
+    <h2>Proje Koruması (Öneri)</h2>
+    <p><strong>sys/src</strong> klasöründeki scriptler, önemli dosyaları yedekler ve tarama yaparak kritik değişiklikleri engeller.</p>
+  </div>
+</body>
+</html>

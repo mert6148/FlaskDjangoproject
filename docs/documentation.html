@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlaskDjango Proje Dokümantasyonu</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; background: #f8fafc; color: #0f172a; margin: 0; padding: 0; }
+    .container { max-width: 980px; margin: 0 auto; padding: 24px; }
+    h1, h2, h3 { color: #1e293b; }
+    pre { background: #e2e8f0; padding: 14px; border-radius: 8px; overflow-x: auto; }
+    code { font-family: "JetBrains Mono", monospace; }
+    .card { background: white; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px; margin-bottom: 18px; box-shadow: 0 4px 10px rgba(15,23,42,.06); }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>FlaskDjango Proje Dokümantasyonu</h1>
+    <p>Bu proje, Flask ve Django arasında uygulama geçişlerini yönetmek için hazırlanmış örnek bir yapı sunar. Python ve JavaScript kombinasyonuyla, modüler bir şekilde sistemsel entegrasyon sağlanmıştır.</p>
+
+    <section class="card">
+      <h2>1. Proje Hakkında</h2>
+      <p>İki ana modül içerir:</p>
+      <ul>
+        <li><strong>Flask</strong>: `app.py`, `auth/`, `dashboard/`, `sys/api/` gibi klasörler içinde API ve sunucu mantığı.</li>
+        <li><strong>Django</strong>: `app/fastadmin/`, `model/`, `sys/` gibi yapılarda CRUD, yönetim ve modüler uygulama geçişi.</li>
+      </ul>
+      <p>Proje, hem Flask hem de Django altyapılarını aynı repo içinde barındırarak dönüşümlü kullanım imkânı sunar.</p>
+    </section>
+
+    <section class="card">
+      <h2>2. Kurulum</h2>
+      <h3>2.1 Ortam Hazırlığı</h3>
+      <pre><code>python -m venv .venv
+.venv\Scripts\activate
+pip install -r auth/Flask-Django_python/requirements.txt</code></pre>
+      <p>Gerekirse Django tarafı için ek bağımlılıkları da <code>app/fastadmin/</code> ve <code>model/</code> klasörlerinden kurun.</p>
+
+      <h3>2.2 Çalıştırma</h3>
+      <ul>
+        <li>Flask: <code>python app.py</code> veya <code>python auth/main.py</code></li>
+        <li>Django için yönetici: <code>python manage.py runserver</code> (varsa proje ayarlarında)</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>3. Proje Dosya Yapısı</h2>
+      <ul>
+        <li><strong>index.html</strong> : Gösterge panelinin ana arayüzü.</li>
+        <li><strong>app.py, main.py</strong> : Flask ana uygulama giriş noktaları.</li>
+        <li><strong>auth/</strong> : Kimlik doğrulama ve kullanıcı yönetimi.</li>
+        <li><strong>model/</strong> : Veri katmanı ve model soyutları.</li>
+        <li><strong>sys/api/</strong> : API uç noktaları ve sunucu altyapısı.</li>
+        <li><strong>dashboard/</strong> : Yönetim paneli arayüzü.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>4. Özellikler</h2>
+      <ul>
+        <li>Flask/Django taşınabilir mimari.</li>
+        <li>Modüler proje dizini ve bileşenler.</li>
+        <li>Basit API ve arayüz entegrasyonu.</li>
+        <li>Çoklu servis geçiş testleri (test/ klasörü).</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>5. Dökümantasyon Notları</h2>
+      <p>Bu sayfa, proje genelini ve hızlı başlangıç bilgilerini içerir. Her modül için daha derin dokümantasyon gerekiyorsa aşağıdaki aşamaları takip edin:</p>
+      <ol>
+        <li>Kaynak dizinleri gözden geçir: <code>app/</code>, <code>auth/</code>, <code>sys/</code></li>
+        <li>Veri modellerini analiz et: <code>model/</code></li>
+        <li>API uç noktalarını test et: <code>sys/api/</code> ve <code>dashboard/</code></li>
+        <li>Test senaryolarını çalıştır: <code>test/run_all_tests.py</code></li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>6. İletişim</h2>
+      <p>Proje sahibi: <strong>mertdoganay437@gmail.com</strong></p>
+      <p>Bir sorun varsa bu repo üzerinden GitHub issue açabilirsiniz: <a href="https://github.com/mert6148/FlaskDjangoproject">flask-django proje</a>.</p>
+    </section>
+  </div>
+</body>
+</html>
