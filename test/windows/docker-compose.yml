@@ -1,0 +1,12 @@
+version: '3.9'
+services:
+  windows-hardening-cpp:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    image: windows-harding-cpp-test
+    container_name: windows_hardening_cpp_test
+    network_mode: host
+    volumes:
+      - ../..:/workspace:ro
+    command: ["/workspace/test/windows/docker/cpp_hardening_test"]

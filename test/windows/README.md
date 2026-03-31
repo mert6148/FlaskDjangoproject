@@ -209,6 +209,22 @@ ansible-playbook -i inventory/hosts.ini site.yml --limit windows
 4. **Test idempotency** — Run tests multiple times
 5. **Document exceptions** — Note any intentional deviations
 
+## Cross-Platform Framework
+
+- `windows_install.ps1` — otomatize Windows setup, Pester/Node/Python package kurulum ve test workflows.
+- `windows_run.bat` — tek tuşla Windows kurulum + test_runner calistirma.
+- `windows_tester.py` — Python ile Windows hardening item check.
+- `windows_tester.js` — Node.js ile ayni kontrollerin JS uygulamasi.
+- `docker-compose.yml` + `docker/Dockerfile` — C++ uygulamasını Docker container içinde build + run et.
+
+## Docker C/C++ Hardening Test
+
+1. Docker kurulu olmalı (Windows 10/11 + Docker Desktop).
+2. `cd test/windows`
+3. `docker-compose -f docker-compose.yml up --build`
+4. Sonra `docker-compose -f docker-compose.yml down`
+5. Sonuç raporu: `test/windows/docker/cpp_hardening_report.txt`
+
 ## References
 
 - [Pester Documentation](https://pester.dev/)
