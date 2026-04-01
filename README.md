@@ -109,6 +109,14 @@ powershell -File scripts/activate_venv.ps1
    - Ardından API'ye eriş:
      `http://localhost:9000/api/kullanicilar`
 
-7. Markdown güncelleme tesbiti:
+7. Front-End klasörlerine python framework iskeleti kur
+
+   - Bu adım, `app`, `assets`, `src` klasörlerine kolay çalışacak frontend scaffolding ekler.
+     ```bash
+     python app/fastadmin/api/frameworks/frontend_frameworks.py
+     ```
+   - `frontend_frameworks_manifest.json` ve `frontend_readme.md` dosyaları oluşturulur.
+
+8. Markdown güncelleme tesbiti:
 
    - Bu README, talebiniz doğrultusunda Flask/Django + DB + JS + Docker akışını merkezi belge olarak güncelledi.
