@@ -1,0 +1,225 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Proxy Konfigürasyonu",
+  "description": "Claude API proxy güvenlik sistemi yapılandırması",
+  "version": "1.0.0",
+
+  "proxy": {
+    "host": "0.0.0.0",
+    "port": 5001,
+    "workers": 4,
+    "timeout_seconds": 60,
+    "debug": false,
+    "environment": "production"
+  },
+
+  "claude_api": {
+    "url": "https://api.anthropic.com/v1/messages",
+    "api_key_env": "CLAUDE_API_KEY",
+    "default_model": "claude-sonnet-4-20250514",
+    "allowed_models": [
+      "claude-opus-4-20250514",
+      "claude-sonnet-4-20250514",
+      "claude-haiku-4-5-20251001"
+    ],
+    "default_max_tokens": 1024,
+    "max_tokens_limit": 8192,
+    "anthropic_version": "2023-06-01"
+  },
+
+  "authentication": {
+    "enabled": true,
+    "type": "jwt",
+    "jwt": {
+      "secret_env":       "JWT_SECRET",
+      "algorithm":        "HS256",
+      "expiry_seconds":   3600,
+      "issuer":           "claude-proxy",
+      "audience":         "claude-clients",
+      "clock_skew_sec":   30
+    }
+  },
+
+  "encryption": {
+    "enabled": true,
+    "algorithm": "AES-256-GCM",
+    "key_env":   "ENC_KEY",
+    "key_bits":  256,
+    "nonce_bytes": 12,
+    "tag_bytes": 16,
+    "encode_format": "base64"
+  },
+
+  "rate_limiting": {
+    "enabled": true,
+    "strategy": "sliding_window",
+    "tiers": {
+      "user": {
+        "per_minute": 20,
+        "per_hour":   200,
+        "per_day":    1000
+      },
+      "admin": {
+        "per_minute": 100,
+        "per_hour":   1000,
+        "per_day":    10000
+      }
+    },
+    "key_strategy": "user_id_then_ip",
+    "storage": "memory",
+    "redis_url_env": "REDIS_URL"
+  },
+
+  "prompt_guard": {
+    "enabled": true,
+    "max_length": 8000,
+    "injection_detection": true,
+    "content_filtering": true,
+    "blocked_patterns": [
+      "ignore (all )?previous instructions?",
+      "system prompt",
+      "jailbreak",
+      "DAN mode",
+      "pretend you (are|have no)",
+      "forget (all )?your (rules?|guidelines?|restrictions?)"
+    ],
+    "content_patterns": [
+      "(bomb|weapon|explosive) (make|build|create|instructions?)",
+      "(malware|ransomware|virus) (code|create|write)"
+    ]
+  },
+
+  "cors": {
+    "enabled": true,
+    "allowed_origins": [
+      "http://localhost:3000",
+      "http://localhost:8080",
+      "https://yourdomain.com"
+    ],
+    "allowed_methods": ["GET", "POST", "OPTIONS"],
+    "allowed_headers": ["Content-Type", "Authorization", "X-Request-ID"],
+    "expose_headers":  ["X-RateLimit-Remaining", "X-Request-ID"],
+    "max_age_seconds": 3600
+  },
+
+  "ip_policy": {
+    "whitelist_enabled": false,
+    "whitelist": [],
+    "blacklist_enabled": true,
+    "blacklist": [],
+    "geo_blocking_enabled": false,
+    "blocked_countries": []
+  },
+
+  "audit_log": {
+    "enabled": true,
+    "log_requests": true,
+    "log_responses": true,
+    "log_blocked": true,
+    "log_format": "json",
+    "output": "stdout",
+    "file_path": "logs/audit.log",
+    "rotation": {
+      "max_bytes": 10485760,
+      "backup_count": 5
+    },
+    "sensitive_fields": ["prompt", "content", "password", "token"]
+  },
+
+  "security_headers": {
+    "X-Content-Type-Options":  "nosniff",
+    "X-Frame-Options":         "DENY",
+    "X-XSS-Protection":        "1; mode=block",
+    "Content-Security-Policy": "default-src 'self'",
+    "Referrer-Policy":         "strict-origin-when-cross-origin",
+    "Cache-Control":           "no-store",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+  },
+
+  "endpoints": {
+    "/health": {
+      "methods": ["GET"],
+      "auth_required": false,
+      "rate_limited": false,
+      "description": "Sağlık kontrolü"
+    },
+    "/auth/token": {
+      "methods": ["POST"],
+      "auth_required": false,
+      "rate_limited": true,
+      "rate_override": { "per_minute": 5, "per_hour": 20 },
+      "description": "JWT token al"
+    },
+    "/proxy/chat": {
+      "methods": ["POST"],
+      "auth_required": true,
+      "rate_limited": true,
+      "encrypted": true,
+      "description": "Claude API proxy endpoint"
+    },
+    "/proxy/status": {
+      "methods": ["GET"],
+      "auth_required": true,
+      "rate_limited": false,
+      "description": "Kullanım durumu"
+    }
+  },
+
+  "request_schema": {
+    "type": "object",
+    "required": ["prompt"],
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 8000,
+        "description": "Kullanıcı mesajı (şifreli veya düz metin)"
+      },
+      "model": {
+        "type": "string",
+        "description": "Claude model adı (opsiyonel)"
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8192,
+        "default": 1024
+      },
+      "is_encrypted": {
+        "type": "boolean",
+        "default": false,
+        "description": "Prompt AES-256-GCM ile şifrelenmiş mi?"
+      },
+      "system": {
+        "type": "string",
+        "description": "Sistem prompt'u (opsiyonel)"
+      }
+    }
+  },
+
+  "response_schema": {
+    "type": "object",
+    "properties": {
+      "success":       { "type": "boolean" },
+      "content":       { "type": "string",  "description": "Claude yanıtı (şifreli veya düz)" },
+      "is_encrypted":  { "type": "boolean" },
+      "input_tokens":  { "type": "integer" },
+      "output_tokens": { "type": "integer" },
+      "request_id":    { "type": "string" },
+      "error":         { "type": "string",  "description": "Hata mesajı (başarısızlıkta)" }
+    }
+  },
+
+  "monitoring": {
+    "metrics_enabled": true,
+    "metrics_endpoint": "/metrics",
+    "tracked": [
+      "requests_total",
+      "requests_blocked",
+      "rate_limit_hits",
+      "injection_attempts",
+      "api_latency_ms",
+      "token_usage"
+    ]
+  }
+}

@@ -9,6 +9,10 @@ from flask_cors import CORS
 import json
 import sys
 import uuid
+import socket
+import requests
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timedelta
 from pathlib import Path
 from functools import wraps
@@ -185,6 +189,101 @@ def require_admin_session(f):
         request.admin_session_id = session_id
         return f(*args, **kwargs)
     return decorated
+
+# ============================================================================
+# UPGRADED UTILITIES FOR WIFI / DB / JSON ID PROTOCOL
+# ============================================================================
+
+def set_db_config(req_data):
+    """Update DB config dynamically with URL and protection controls."""
+    db_url = req_data.get("db_url")
+    if not db_url:
+        return False, "db_url is required"
+    try:
+        # quick non-persistent check
+        engine = create_engine(db_url)
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        DB_CONFIG["db_url"] = db_url
+        DB_CONFIG["db_engine"] = engine
+        return True, "DB configured and reachable"
+    except SQLAlchemyError as e:
+        return False, str(e)
+
+
+def check_wifi_connectivity():
+    """Check internet connectivity via DNS+TCP to 8.8.8.8 and HTTP to google."""
+    try:
+        # DNS resolution check:
+        socket.gethostbyname("www.google.com")
+        # TCP connect to DNS server
+        sock = socket.create_connection(("8.8.8.8", 53), timeout=3)
+        sock.close()
+        # HTTP fetch check
+        r = requests.get("https://www.google.com", timeout=5)
+        return True, f"Online ({r.status_code})"
+    except Exception as e:
+        return False, str(e)
+
+
+def _json_id_bind(value):
+    """Ensure JSON payload has valid UUID id binding (v4)."""
+    if not isinstance(value, dict):
+        return None, "Payload must be object"
+    if "id" not in value:
+        value["id"] = str(uuid.uuid4())
+    else:
+        try:
+            value["id"] = str(uuid.UUID(str(value["id"])))
+        except ValueError:
+            return None, "Invalid UUID id"
+    return value, None
+
+
+@app.route("/api/v1/wifi-check", methods=["GET"])
+def wifi_check():
+    ok, msg = check_wifi_connectivity()
+    status = "ok" if ok else "down"
+    log_api_call("/api/v1/wifi-check", "GET", 200 if ok else 503, message=msg)
+    return jsonify({"status": status, "message": msg}), 200 if ok else 503
+
+
+@app.route("/api/v1/db-config", methods=["POST"])
+@require_api_key
+def api_db_config():
+    payload = request.get_json(silent=True) or {}
+    ok, message = set_db_config(payload)
+    status_code = 200 if ok else 400
+    log_api_call("/api/v1/db-config", "POST", status_code, message=message)
+    return jsonify({"success": ok, "message": message}), status_code
+
+
+@app.route("/api/v1/item", methods=["POST"])
+@require_api_key
+def api_item_create():
+    payload = request.get_json(silent=True)
+    payload, err = _json_id_bind(payload)
+    if err:
+        log_api_call("/api/v1/item", "POST", 400, message=err)
+        return jsonify({"error": err}), 400
+    # Write item to temporary db store, etc.
+    if "items" not in globals():
+        globals()["items"] = {}
+    items[payload["id"]] = payload
+    log_api_call("/api/v1/item", "POST", 201, message="item created")
+    return jsonify({"success": True, "item": payload}), 201
+
+
+@app.route("/api/v1/item/<item_id>", methods=["GET"])
+@require_api_key
+def api_item_get(item_id):
+    store = globals().get("items", {})
+    if item_id not in store:
+        log_api_call(f"/api/v1/item/{item_id}", "GET", 404, message="item not found")
+        return jsonify({"error": "Item not found"}), 404
+    log_api_call(f"/api/v1/item/{item_id}", "GET", 200, message="item retrieved")
+    return jsonify({"item": store[item_id]}), 200
+
 
 # ============================================================================
 # ERROR HANDLERS

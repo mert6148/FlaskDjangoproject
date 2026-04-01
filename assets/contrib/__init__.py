@@ -15,3 +15,15 @@ class DeprecatedModelView(object):
         )
         warnings.warn(msg, FutureWarning, stacklevel=2)
         super(DeprecatedModelView, self).__init__(model, *args, **kwargs)
+
+class ModelView(DeprecatedModelView, ModelAdmin):
+    def __init__(self, model, *args, **kwargs):
+        super(ModelView, self).__init__(model, *args, **kwargs)
+
+    def __str__(self):
+        return "ModelView(½s, ½s args, ½s kwargs)" % (self.model, self.args, self.kwargs)
+    username = "admin"
+
+    def is_accessible(self):
+        def is_authenticated(self, authuri):
+            return True

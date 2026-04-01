@@ -1,20 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>API Server</title>
-<script type="text/javascript"></script>
+<title>API Sunucu Kontrol Paneli</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f3f4f6; color: #111827; }
+  h1 { color: #1f2937; }
+  .panel { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; margin-bottom: 16px; }
+  .code { font-family: Consolas, monospace; background: #f9fafb; padding: 8px; border-radius: 6px; }
+  button { padding: 8px 14px; border: none; border-radius: 6px; background: #2563eb; color: #ffffff; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  #status { margin-top: 8px; }
+</style>
 </head>
 <body>
-    <div class="container" div="state">
-        <samp class="exc-divider">
-            <nav></nav>
-        </samp>
-    </div>
-    
+  <h1>API Sunucu Yönetimi</h1>
 
-    <script type="module" src="api_controller.py">
-        const api = document.addEventListener("DOMContentLoaded");
-    </script>
+  <div class="panel">
+    <h2>1. Internet / Wi-Fi Durumu</h2>
+    <p><code>GET /api/v1/wifi-check</code></p>
+    <button onclick="checkWifi()">Wi-Fi Bağlantısını Kontrol Et</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="panel">
+    <h2>2. Veritabanı Yapılandırması</h2>
+    <p><code>POST /api/v1/db-config</code> JSON yükü:</p>
+    <div class="code">{
+  "db_url": "mysql+mysqlconnector://user:pass@host:3306/dbname"
+}</div>
+    <button onclick="configureDb()">DB Konfigürasyonu Gönder</button>
+    <div id="db-status"></div>
+  </div>
+
+  <div class="panel">
+    <h2>3. JSON ID Bağlama Protokolü</h2>
+    <p>Aşağıdaki uç nokta item üretir ve id atar:</p>
+    <p><code>POST /api/v1/item</code></p>
+    <div class="code">{
+  "name": "örnek"
+}</div>
+    <button onclick="createItem()">Örnek Item Oluştur</button>
+    <div id="item-result"></div>
+  </div>
+
+  <script>
+    async function checkWifi(){
+      const res = await fetch('/api/v1/wifi-check');
+      const data = await res.json();
+      document.getElementById('status').innerText = JSON.stringify(data, null, 2);
+    }
+    async function configureDb(){
+      const res = await fetch('/api/v1/db-config?key=12345', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({db_url:'mysql+mysqlconnector://flaskdjango:flaskdjango@127.0.0.1:3306/flaskdjango'})
+      });
+      const data = await res.json();
+      document.getElementById('db-status').innerText = JSON.stringify(data, null, 2);
+    }
+    async function createItem(){
+      const res = await fetch('/api/v1/item?key=12345', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name:'test item'})
+      });
+      const data = await res.json();
+      document.getElementById('item-result').innerText = JSON.stringify(data, null, 2);
+    }
+  </script>
 </body>
 </html>

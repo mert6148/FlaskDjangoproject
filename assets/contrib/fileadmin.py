@@ -1,13 +1,22 @@
+"""
+fileadmin.py — Dosya Yönetim Arayüzü (Python 3 Uyumlu)
+=======================================================
+Düzeltmeler (orijinal fileadmin.py):
+  - 'import urlparse' → 'from urllib.parse import urljoin' (Py3)
+  - 'except Exception, ex:' → 'except Exception as ex:' (Py3)
+  - 'from werkzeug import secure_filename' → 'from werkzeug.utils import ...'
+  - 'TextField' → 'StringField' (WTForms 3.x)
+"""
+
 import os
 import os.path as op
 import platform
-import urlparse
 import re
 import shutil
-
 from operator import itemgetter
+from urllib.parse import urljoin                    # Py2: urlparse.urljoin
 
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename          # Py2: from werkzeug import
 
 from flask import flash, url_for, redirect, abort, request
 
@@ -15,412 +24,324 @@ from flask_superadmin.base import BaseView, expose
 from flask_superadmin.babel import gettext, lazy_gettext
 from flask_superadmin import form
 from flask_wtf.file import FileField
-from wtforms import TextField, ValidationError
+from wtforms import StringField, ValidationError    # Py3 WTForms: StringField
 
 
 class NameForm(form.BaseForm):
     """
-        Form with a filename input field.
-
-        Validates if provided name is valid for *nix and Windows systems.
+    Dosya/dizin adı giriş formu.
+    *nix ve Windows için geçerli ad doğrulaması yapar.
     """
-    name = TextField()
+    name = StringField()                            # TextField → StringField
 
-    regexp = re.compile(r'^(?!^(PRN|AUX|CLOCK\$|NUL|CON|COM\d|LPT\d|\..*)'
-                        r'(\..+)?$)[^\x00-\x1f\\?*:\";|/]+$')
+    regexp = re.compile(
+        r'^(?!^(PRN|AUX|CLOCK\$|NUL|CON|COM\d|LPT\d|\..*)'
+        r'(\..+)?$)[^\x00-\x1f\\?*:\";|/]+$'
+    )
 
     def validate_name(self, field):
-        if not self.regexp.match(field.data):
+        if not self.regexp.match(field.data or ""):
             raise ValidationError(gettext('Invalid directory name'))
 
 
 class UploadForm(form.BaseForm):
     """
-        File upload form. Works with FileAdmin instance to check if it
-        is allowed to upload file with given extension.
+    Dosya yükleme formu.
+    FileAdmin örneğiyle birlikte çalışarak uzantı doğrulaması yapar.
     """
     upload = FileField(lazy_gettext('File to upload'))
 
     def __init__(self, admin):
         self.admin = admin
-
-        super(UploadForm, self).__init__()
+        super().__init__()
 
     def validate_upload(self, field):
         if not self.upload.has_file():
             raise ValidationError(gettext('File required.'))
-
         filename = self.upload.data.filename
-
         if not self.admin.is_file_allowed(filename):
             raise ValidationError(gettext('Invalid file type.'))
 
 
 class FileAdmin(BaseView):
     """
-        Simple file-management interface.
+    Basit dosya yönetim arayüzü.
 
-        Requires two parameters:
+    Zorunlu parametreler:
 
-        `path`
-            Path to the directory which will be managed
-        `url`
-            Base URL for the directory. Will be used to generate
-            static links to the files.
+    ``base_path``
+        Yönetilecek dizinin tam yolu.
+    ``base_url``
+        Dizin için temel URL. Statik dosya bağlantıları üretmek için kullanılır.
 
-        Sample usage::
+    Örnek kullanım::
 
-            admin = Admin()
+        admin = Admin()
+        path  = op.join(op.dirname(__file__), 'static')
+        admin.add_view(
+            FileAdmin(path, '/static/', name='Statik Dosyalar')
+        )
+        admin.setup_app(app)
 
-            path = op.join(op.dirname(__file__), 'static')
-            admin.add_view(FileAdmin(path, '/static/', name='Static Files'))
-            admin.setup_app(app)
+    Özelleştirilebilir sınıf değişkenleri:
+
+    .. code-block:: python
+
+        class OzelFileAdmin(FileAdmin):
+            can_upload       = True    # Yüklemeye izin ver
+            can_delete       = True    # Silmeye izin ver
+            can_delete_dirs  = True    # Dizin silmeye izin ver
+            can_mkdir        = True    # Dizin oluşturmaya izin ver
+            can_rename       = True    # Yeniden adlandırmaya izin ver
+            allowed_extensions = ('jpg', 'png', 'pdf')  # İzin verilen uzantılar
     """
 
-    can_upload = True
-    """
-        Is file upload allowed.
-    """
-
-    can_delete = True
-    """
-        Is file deletion allowed.
-    """
-
+    # ── Özelleştirilebilir değişkenler ────────────────────────────────────────
+    can_upload      = True
+    can_delete      = True
     can_delete_dirs = True
-    """
-        Is recursive directory deletion is allowed.
-    """
+    can_mkdir       = True
+    can_rename      = True
+    allowed_extensions = None   # None = tümüne izin ver
 
-    can_mkdir = True
-    """
-        Is directory creation allowed.
-    """
-
-    can_rename = True
-    """
-        Is file and directory renaming allowed.
-    """
-
-    allowed_extensions = None
-    """
-        List of allowed extensions for uploads, in lower case.
-
-        Example::
-
-            class MyAdmin(FileAdmin):
-                allowed_extensions = ('swf', 'jpg', 'gif', 'png')
-    """
-
-    list_template = 'admin/file/list.html'
-    """
-        File list template
-    """
-
+    list_template   = 'admin/file/list.html'
     upload_template = 'admin/file/form.html'
-    """
-        File upload template
-    """
-
-    mkdir_template = 'admin/file/form.html'
-    """
-        Directory creation (mkdir) template
-    """
-
+    mkdir_template  = 'admin/file/form.html'
     rename_template = 'admin/file/rename.html'
-    """
-        Rename template
-    """
 
     def __init__(self, base_path, base_url,
                  name=None, category=None, endpoint=None, url=None):
         """
-            Constructor.
-
-            `base_path`
-                Base file storage location
-            `base_url`
-                Base URL for the files
-            `name`
-                Name of this view. If not provided,
-                will be defaulted to the class name.
-            `category`
-                View category
-            `endpoint`
-                Endpoint name for the view
-            `url`
-                URL for view
+        :param base_path: Temel dosya depolama dizini (tam yol).
+        :param base_url:  Dosyalar için temel URL.
+        :param name:      Görünüm adı (varsayılan: sınıf adı).
+        :param category:  Görünüm kategorisi.
+        :param endpoint:  Endpoint adı.
+        :param url:       Görünüm URL'si.
         """
-        self.base_path = base_path
-        self.base_url = base_url
-
+        self.base_path   = base_path
+        self.base_url    = base_url
         self._on_windows = platform.system() == 'Windows'
 
-        # Convert allowed_extensions to set for quick validation
-        if (self.allowed_extensions
-                and not isinstance(self.allowed_extensions, set)):
+        if self.allowed_extensions and not isinstance(self.allowed_extensions, set):
             self.allowed_extensions = set(self.allowed_extensions)
 
-        super(FileAdmin, self).__init__(name, category, endpoint, url)
+        super().__init__(name, category, endpoint, url)
 
-    def is_accessible_path(self, path):
+    # ── Güvenlik yardımcıları ─────────────────────────────────────────────────
+
+    def is_accessible_path(self, path: str) -> bool:
         """
-            Verify if path is accessible for current user.
+        Yolun mevcut kullanıcı için erişilebilir olup olmadığını doğrular.
+        Özelleştirmek için override edin.
 
-            Override to customize behavior.
-
-            `path`
-                Relative path to the root
+        :param path: Kök dizine göre bağıl yol.
+        :returns: Erişim izni varsa True.
         """
         return True
 
-    def get_base_path(self):
-        """
-            Return base path. Override to customize behavior (per-user
-            directories, etc)
-        """
+    def get_base_path(self) -> str:
+        """Temel yolu döndürür. Kullanıcı bazlı dizinler için override edin."""
         return op.normpath(self.base_path)
 
-    def get_base_url(self):
-        """
-            Return base URL. Override to customize behavior (per-user
-            directories, etc)
-        """
+    def get_base_url(self) -> str:
+        """Temel URL'yi döndürür. Override ile özelleştirilebilir."""
         return self.base_url
 
-    def is_file_allowed(self, filename):
+    def is_file_allowed(self, filename: str) -> bool:
         """
-            Verify if file can be uploaded.
+        Dosyanın yüklenebilir olup olmadığını kontrol eder.
 
-            Override to customize behavior.
-
-            `filename`
-                Source file name
+        :param filename: Kaynak dosya adı.
+        :returns: Yüklemeye izin varsa True.
         """
-        ext = op.splitext(filename)[1].lower()
-
-        if ext.startswith('.'):
-            ext = ext[1:]
-
+        ext = op.splitext(filename)[1].lower().lstrip('.')
         if self.allowed_extensions and ext not in self.allowed_extensions:
             return False
-
         return True
 
-    def is_in_folder(self, base_path, directory):
+    def is_in_folder(self, base_path: str, directory: str) -> bool:
         """
-            Verify if `directory` is in `base_path` folder
+        ``directory``'nin ``base_path`` içinde olup olmadığını doğrular.
+
+        :param base_path: Temel dizin yolu.
+        :param directory: Kontrol edilecek dizin.
+        :returns: directory, base_path içindeyse True.
         """
         return op.normpath(directory).startswith(base_path)
 
-    def save_file(self, path, file_data):
+    def save_file(self, path: str, file_data) -> None:
         """
-            Save uploaded file to the disk
+        Yüklenen dosyayı diske kaydeder.
 
-            `path`
-                Path to save to
-            `file_data`
-                Werkzeug `FileStorage` object
+        :param path:      Kaydedilecek hedef yol.
+        :param file_data: Werkzeug ``FileStorage`` nesnesi.
         """
         file_data.save(path)
 
-    def _get_dir_url(self, endpoint, path, **kwargs):
-        """
-            Return prettified URL
+    # ── URL üretici yardımcılar ───────────────────────────────────────────────
 
-            `endpoint`
-                Endpoint name
-            `path`
-                Directory path
-            `kwargs`
-                Additional arguments
+    def _get_dir_url(self, endpoint: str, path: str, **kwargs) -> str:
+        """
+        Dizin URL'sini oluşturur.
+
+        :param endpoint: Endpoint adı.
+        :param path:     Dizin yolu.
+        :returns: Flask ``url_for`` çıktısı.
         """
         if not path:
             return url_for(endpoint)
-        else:
-            if self._on_windows:
-                path = path.replace('\\', '/')
+        if self._on_windows:
+            path = path.replace('\\', '/')
+        return url_for(endpoint, path=path, **kwargs)
 
-            kwargs['path'] = path
-
-            return url_for(endpoint, **kwargs)
-
-    def _get_file_url(self, path):
+    def _get_file_url(self, path: str) -> str:
         """
-            Return static file url
+        Statik dosya URL'sini döndürür.
 
-            `path`
-                Static file path
+        :param path: Statik dosya yolu.
+        :returns: Tam dosya URL'si.
         """
-        base_url = self.get_base_url()
-        return urlparse.urljoin(base_url, path)
+        return urljoin(self.get_base_url(), path)  # Py3: urljoin
 
-    def _normalize_path(self, path):
+    def _normalize_path(self, path) -> tuple[str, str, str]:
         """
-            Verify and normalize path.
+        Yolu doğrular ve normalleştirir.
 
-            If path is not relative to the base directory,
-            will throw 404 exception.
+        Yol temel dizine göre bağıl değilse veya mevcut değilse 404 fırlatır.
 
-            If path does not exist, will also throw 404 exception.
+        :returns: (base_path, directory, path) üçlüsü.
         """
         base_path = self.get_base_path()
-
         if path is None:
-            directory = base_path
-            path = ''
-        else:
-            path = op.normpath(path)
-            directory = op.normpath(op.join(base_path, path))
-
-            if not self.is_in_folder(base_path, directory):
-                abort(404)
-
+            return base_path, base_path, ''
+        path      = op.normpath(path)
+        directory = op.normpath(op.join(base_path, path))
+        if not self.is_in_folder(base_path, directory):
+            abort(404)
         if not op.exists(directory):
             abort(404)
-
         return base_path, directory, path
 
-    def field_name(self, text):
-        return text.capitalize()
-
-    def get_readonly_fields(self, instance):
-        return {}
+    # ── Görünüm rotaları ──────────────────────────────────────────────────────
 
     @expose('/')
     @expose('/b/<path:path>')
     def index(self, path=None):
         """
-            Index view method
+        Dizin listeleme görünümü.
 
-            `path`
-                Optional directory path. If not provided,
-                will use base directory
+        :param path: İsteğe bağlı alt dizin yolu.
+                     Verilmezse temel dizin kullanılır.
         """
-        # Get path and verify if it is valid
         base_path, directory, path = self._normalize_path(path)
-
-        # Get directory listing
         items = []
 
-        # Parent directory
         if directory != base_path:
             parent_path = op.normpath(op.join(path, '..'))
-            if parent_path == '.':
-                parent_path = None
-
-            items.append(('..', parent_path, True, 0))
+            items.append(('..', None if parent_path == '.' else parent_path, True, 0))
 
         for f in os.listdir(directory):
             fp = op.join(directory, f)
-
             items.append((f, op.join(path, f), op.isdir(fp), op.getsize(fp)))
 
-        # Sort by type
         items.sort(key=itemgetter(2), reverse=True)
 
-        # Generate breadcrumbs
-        accumulator = []
-        breadcrumbs = []
-        for n in path.split(os.sep):
-            accumulator.append(n)
-            breadcrumbs.append((n, op.join(*accumulator)))
+        breadcrumbs, acc = [], []
+        for part in path.split(os.sep):
+            if part:
+                acc.append(part)
+                breadcrumbs.append((part, op.join(*acc)))
 
-        return self.render(self.list_template,
-                           dir_path=path,
-                           breadcrumbs=breadcrumbs,
-                           get_dir_url=self._get_dir_url,
-                           get_file_url=self._get_file_url,
-                           items=items,
-                           base_path=base_path)
+        return self.render(
+            self.list_template,
+            dir_path=path,
+            breadcrumbs=breadcrumbs,
+            get_dir_url=self._get_dir_url,
+            get_file_url=self._get_file_url,
+            items=items,
+            base_path=base_path,
+        )
 
     @expose('/upload/', methods=('GET', 'POST'))
     @expose('/upload/<path:path>', methods=('GET', 'POST'))
     def upload(self, path=None):
         """
-            Upload view method
+        Dosya yükleme görünümü.
 
-            `path`
-                Optional directory path. If not provided,
-                will use base directory
+        :param path: Yükleme dizini. Verilmezse temel dizin kullanılır.
         """
-        # Get path and verify if it is valid
         base_path, directory, path = self._normalize_path(path)
 
         if not self.can_upload:
             flash(gettext('File uploading is disabled.'), 'error')
             return redirect(self._get_dir_url('.index', path))
 
-        form = UploadForm(self)
-        if form.validate_on_submit():
-            filename = op.join(directory,
-                               secure_filename(form.upload.data.filename))
-
+        upload_form = UploadForm(self)
+        if upload_form.validate_on_submit():
+            filename = op.join(
+                directory,
+                secure_filename(upload_form.upload.data.filename)
+            )
             if op.exists(filename):
                 flash(gettext('File "%(name)s" already exists.',
-                              name=form.upload.data.filename), 'error')
+                              name=upload_form.upload.data.filename), 'error')
             else:
                 try:
-                    self.save_file(filename, form.upload.data)
+                    self.save_file(filename, upload_form.upload.data)
                     return redirect(self._get_dir_url('.index', path))
-                except Exception, ex:
+                except Exception as ex:                      # Py3: 'as ex'
                     flash(gettext('Failed to save file: %(error)s', error=ex))
 
-        return self.render(self.upload_template,
-                           form=form,
-                           base_path=base_path,
-                           path=path,
-                           msg=gettext(u'Upload a file'))
+        return self.render(
+            self.upload_template,
+            form=upload_form,
+            base_path=base_path,
+            path=path,
+            msg=gettext(u'Upload a file'),
+        )
 
     @expose('/mkdir/', methods=('GET', 'POST'))
     @expose('/mkdir/<path:path>', methods=('GET', 'POST'))
     def mkdir(self, path=None):
         """
-            Directory creation view method
+        Dizin oluşturma görünümü.
 
-            `path`
-                Optional directory path. If not provided,
-                will use base directory
+        :param path: Üst dizin yolu.
         """
-        # Get path and verify if it is valid
         base_path, directory, path = self._normalize_path(path)
-
         dir_url = self._get_dir_url('.index', path)
 
         if not self.can_mkdir:
             flash(gettext('Directory creation is disabled.'), 'error')
             return redirect(dir_url)
 
-        form = NameForm(request.form)
-
-        if form.validate_on_submit():
+        mkdir_form = NameForm(request.form)
+        if mkdir_form.validate_on_submit():
             try:
-                os.mkdir(op.join(directory, form.name.data))
+                os.mkdir(op.join(directory, mkdir_form.name.data))
                 return redirect(dir_url)
-            except Exception, ex:
-                flash(gettext('Failed to create directory: %(error)s', ex),
-                      'error')
+            except Exception as ex:                          # Py3: 'as ex'
+                flash(gettext('Failed to create directory: %(error)s',
+                              error=ex), 'error')
 
-        return self.render(self.mkdir_template,
-                           form=form,
-                           dir_url=dir_url,
-                           base_path=base_path,
-                           path=path,
-                           msg=gettext(u'Create a new directory'))
+        return self.render(
+            self.mkdir_template,
+            form=mkdir_form,
+            dir_url=dir_url,
+            base_path=base_path,
+            path=path,
+            msg=gettext(u'Create a new directory'),
+        )
 
     @expose('/delete/', methods=('POST',))
     def delete(self):
-        """
-            Delete view method
-        """
+        """Dosya veya dizin silme görünümü."""
         path = request.form.get('path')
-
         if not path:
             return redirect(url_for('.index'))
 
-        # Get path and verify if it is valid
         base_path, full_path, path = self._normalize_path(path)
-
         return_url = self._get_dir_url('.index', op.dirname(path))
 
         if not self.can_delete:
@@ -431,23 +352,19 @@ class FileAdmin(BaseView):
             if not self.can_delete_dirs:
                 flash(gettext('Directory deletion is disabled.'))
                 return redirect(return_url)
-
             try:
                 shutil.rmtree(full_path)
-                flash(
-                    gettext('Directory "%s" was successfully deleted.' % path)
-                )
-            except Exception, ex:
-                flash(
-                    gettext('Failed to delete directory: %(error)s', error=ex),
-                    'error'
-                )
+                flash(gettext('Directory "%(name)s" was successfully deleted.',
+                              name=path))
+            except Exception as ex:                          # Py3: 'as ex'
+                flash(gettext('Failed to delete directory: %(error)s',
+                              error=ex), 'error')
         else:
             try:
                 os.remove(full_path)
                 flash(gettext('File "%(name)s" was successfully deleted.',
                               name=path))
-            except Exception, ex:
+            except Exception as ex:                          # Py3: 'as ex'
                 flash(gettext('Failed to delete file: %(name)s',
                               name=ex), 'error')
 
@@ -455,16 +372,12 @@ class FileAdmin(BaseView):
 
     @expose('/rename/', methods=('GET', 'POST'))
     def rename(self):
-        """
-            Rename view method
-        """
+        """Dosya veya dizin yeniden adlandırma görünümü."""
         path = request.args.get('path')
-
         if not path:
             return redirect(url_for('.index'))
 
         base_path, full_path, path = self._normalize_path(path)
-
         return_url = self._get_dir_url('.index', op.dirname(path))
 
         if not self.can_rename:
@@ -475,25 +388,26 @@ class FileAdmin(BaseView):
             flash(gettext('Path does not exist.'))
             return redirect(return_url)
 
-        form = NameForm(request.form, name=op.basename(path))
-        if form.validate_on_submit():
+        rename_form = NameForm(request.form, name=op.basename(path))
+        if rename_form.validate_on_submit():
             try:
                 dir_base = op.dirname(full_path)
-                filename = secure_filename(form.name.data)
-
+                filename = secure_filename(rename_form.name.data)
                 os.rename(full_path, op.join(dir_base, filename))
-                flash(gettext('Successfully renamed "%(src)s" to "%(dst)s"',
-                      src=op.basename(path),
-                      dst=filename))
-            except Exception, ex:
-                flash(gettext('Failed to rename: %(error)s',
-                              error=ex), 'error')
+                flash(gettext(
+                    'Successfully renamed "%(src)s" to "%(dst)s"',
+                    src=op.basename(path), dst=filename
+                ))
+            except Exception as ex:                          # Py3: 'as ex'
+                flash(gettext('Failed to rename: %(error)s', error=ex), 'error')
 
             return redirect(return_url)
 
-        return self.render(self.rename_template,
-                           form=form,
-                           path=op.dirname(path),
-                           name=op.basename(path),
-                           dir_url=return_url,
-                           base_path=base_path)
+        return self.render(
+            self.rename_template,
+            form=rename_form,
+            path=op.dirname(path),
+            name=op.basename(path),
+            dir_url=return_url,
+            base_path=base_path,
+        )

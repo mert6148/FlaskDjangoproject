@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Claude Proxy · Güvenlik Paneli</title>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & Kök değişkenler ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:       #050810;
+  --surf:     #080c18;
+  --lift:     #0c1220;
+  --bord:     #0e1830;
+  --bord2:    #152240;
+  --accent:   #00d4ff;
+  --accent2:  #ff4d6d;
+  --green:    #00ff9f;
+  --amber:    #ffb703;
+  --purple:   #7c3aed;
+  --text:     #c8d8f0;
+  --muted:    #3d5070;
+  --mono:     'Share Tech Mono', monospace;
+  --sans:     'Oxanium', sans-serif;
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--sans);font-size:13px;
+  min-height:100vh;overflow-x:hidden;
+}
+
+/* ── Grid arka plan ── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,212,255,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+
+/* ── Ortam parıltıları ── */
+.glows{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.glow{position:absolute;border-radius:50%;filter:blur(80px);opacity:.12;animation:drift 12s infinite alternate}
+.glow-1{width:600px;height:600px;background:var(--accent);top:-200px;right:-100px;animation-delay:0s}
+.glow-2{width:400px;height:400px;background:var(--accent2);bottom:-100px;left:-100px;animation-delay:-5s}
+.glow-3{width:300px;height:300px;background:var(--purple);top:50%;left:50%;animation-delay:-3s}
+@keyframes drift{
+  0%  {transform:translate(0,0) scale(1)}
+  100%{transform:translate(30px,20px) scale(1.1)}
+}
+
+/* ── Kabuk ── */
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+
+/* ════════ SIDEBAR ════════ */
+.sidebar{
+  width:250px;flex-shrink:0;
+  background:rgba(8,12,24,.9);
+  border-right:1px solid var(--bord);
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+  backdrop-filter:blur(12px);
+}
+.brand{padding:22px 20px 18px;border-bottom:1px solid var(--bord)}
+.brand-logo{
+  font-size:11px;letter-spacing:4px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;
+}
+.brand-name{
+  font-size:20px;font-weight:800;letter-spacing:-1px;
+  background:linear-gradient(90deg,var(--accent),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.brand-badge{
+  display:inline-flex;align-items:center;gap:5px;margin-top:8px;
+  font-family:var(--mono);font-size:9px;padding:3px 8px;
+  border-radius:3px;border:1px solid rgba(0,212,255,.25);
+  color:var(--accent);background:rgba(0,212,255,.06);
+}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:var(--green);
+  animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.nav{flex:1;padding:14px 10px;overflow-y:auto}
+.nav-group{margin-bottom:20px}
+.nav-label{
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);padding:0 12px;margin-bottom:6px;
+}
+.nav-btn{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:9px 12px;border-radius:6px;border:none;
+  background:transparent;color:var(--muted);cursor:pointer;
+  font-family:var(--sans);font-size:12px;font-weight:600;
+  transition:all .18s;text-align:left;
+}
+.nav-btn:hover{background:rgba(0,212,255,.06);color:var(--text)}
+.nav-btn.active{
+  background:rgba(0,212,255,.1);color:var(--accent);
+  outline:1px solid rgba(0,212,255,.2);outline-offset:-1px;
+}
+.nav-icon{font-size:14px;width:16px;text-align:center;flex-shrink:0}
+
+.sb-footer{
+  padding:14px 20px;border-top:1px solid var(--bord);
+  font-family:var(--mono);font-size:9px;color:var(--muted);
+}
+.status-line{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.sb-ver{font-size:9px;letter-spacing:1px}
+
+/* ════════ MAIN ════════ */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+
+/* ── Topbar ── */
+.topbar{
+  padding:14px 32px;border-bottom:1px solid var(--bord);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(5,8,16,.85);backdrop-filter:blur(16px);
+  position:sticky;top:0;z-index:20;
+}
+.page-title{font-size:16px;font-weight:800;letter-spacing:-0.5px}
+.page-title span{color:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+
+.chip{
+  font-family:var(--mono);font-size:9px;padding:4px 10px;
+  border-radius:3px;border:1px solid;
+}
+.chip-ok  {border-color:rgba(0,255,159,.3);color:var(--green);background:rgba(0,255,159,.06)}
+.chip-warn{border-color:rgba(255,183,3,.3);color:var(--amber);background:rgba(255,183,3,.06)}
+.chip-err {border-color:rgba(255,77,109,.3);color:var(--accent2);background:rgba(255,77,109,.06)}
+
+.tb-btn{
+  font-family:var(--sans);font-size:11px;font-weight:700;
+  padding:7px 14px;border-radius:5px;cursor:pointer;
+  border:1px solid var(--bord2);background:var(--lift);color:var(--text);
+  transition:all .15s;letter-spacing:.3px;
+}
+.tb-btn:hover{border-color:var(--accent);color:var(--accent)}
+.tb-btn.send{
+  background:linear-gradient(90deg,var(--accent),var(--purple));
+  color:#000;border:none;font-weight:800;
+}
+.tb-btn.send:hover{filter:brightness(1.15)}
+
+/* ── İçerik ── */
+.content{padding:28px 32px;flex:1;overflow-y:auto}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── Stat kartları ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.scard{
+  background:var(--surf);border:1px solid var(--bord);border-radius:10px;
+  padding:18px 20px;position:relative;overflow:hidden;
+  animation:fadeUp .4s ease both;
+}
+.scard::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,var(--c1,var(--accent)),var(--c2,var(--purple)));
+}
+.scard.v1{--c1:var(--accent);--c2:#0080ff}
+.scard.v2{--c1:var(--green);--c2:#00a068}
+.scard.v3{--c1:var(--amber);--c2:#ff8c00}
+.scard.v4{--c1:var(--accent2);--c2:var(--purple)}
+.scard:nth-child(2){animation-delay:.05s}
+.scard:nth-child(3){animation-delay:.10s}
+.scard:nth-child(4){animation-delay:.15s}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.sc-label{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.sc-val{font-size:28px;font-weight:800;line-height:1;letter-spacing:-1px}
+.sc-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:5px}
+.sc-icon{position:absolute;right:16px;top:16px;font-size:18px;opacity:.12}
+
+/* ── Panel ── */
+.panel{background:var(--surf);border:1px solid var(--bord);border-radius:10px;overflow:hidden;margin-bottom:16px;animation:fadeUp .35s ease both}
+.ph{padding:13px 18px;border-bottom:1px solid var(--bord);display:flex;align-items:center;justify-content:space-between}
+.ph-title{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.pb{padding:18px}
+
+/* ── Log satırı ── */
+.log-stream{
+  font-family:var(--mono);font-size:11px;line-height:1.8;
+  background:var(--bg);border:1px solid var(--bord);border-radius:6px;
+  padding:14px;max-height:260px;overflow-y:auto;
+}
+.log-line{display:flex;gap:10px;align-items:flex-start;padding:2px 0}
+.log-line+.log-line{border-top:1px solid rgba(255,255,255,.02);padding-top:4px;margin-top:2px}
+.log-time{color:var(--muted);flex-shrink:0;min-width:70px}
+.log-tag{font-size:9px;padding:1px 6px;border-radius:3px;flex-shrink:0;font-weight:600;min-width:54px;text-align:center}
+.tag-ok  {background:rgba(0,255,159,.1);color:var(--green)}
+.tag-warn{background:rgba(255,183,3,.1);color:var(--amber)}
+.tag-blk {background:rgba(255,77,109,.1);color:var(--accent2)}
+.tag-rate{background:rgba(124,58,237,.1);color:var(--purple)}
+.tag-enc {background:rgba(0,212,255,.1);color:var(--accent)}
+.log-msg{color:var(--text);opacity:.8;font-size:11px}
+
+/* ── İstek formu ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-field label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.form-input{
+  width:100%;padding:10px 13px;
+  background:var(--bg);border:1px solid var(--bord2);border-radius:6px;
+  font-family:var(--mono);font-size:12px;color:var(--text);outline:none;
+  transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,.1)}
+.form-input::placeholder{color:var(--muted)}
+.form-textarea{min-height:90px;resize:vertical}
+.form-select{appearance:none;cursor:pointer}
+.send-row{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.enc-toggle{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer}
+.enc-toggle input{accent-color:var(--accent)}
+
+/* ── Yanıt kutusu ── */
+.response-box{
+  background:var(--bg);border:1px solid var(--bord);border-radius:6px;
+  padding:16px;font-family:var(--mono);font-size:12px;line-height:1.7;
+  min-height:80px;white-space:pre-wrap;word-break:break-word;
+  color:var(--green);max-height:300px;overflow-y:auto;
+}
+.response-box.error{color:var(--accent2);border-color:rgba(255,77,109,.2)}
+.response-box.loading{color:var(--muted)}
+
+/* ── Kural kartları ── */
+.rules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.rule-card{
+  background:var(--lift);border:1px solid var(--bord);border-radius:8px;
+  padding:16px;border-left:3px solid var(--c, var(--accent));
+}
+.rule-icon{font-size:20px;margin-bottom:8px}
+.rule-name{font-size:12px;font-weight:700;margin-bottom:4px}
+.rule-desc{font-size:11px;color:var(--muted);line-height:1.5}
+.rule-status{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;
+  margin-top:8px;display:inline-block;background:rgba(0,255,159,.1);color:var(--green)}
+
+/* ── Endpoint tablo ── */
+.ep-table{width:100%;border-collapse:collapse}
+.ep-table th{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 12px 10px;border-bottom:1px solid var(--bord)}
+.ep-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.02);font-size:12px}
+.ep-table tr:hover td{background:rgba(0,212,255,.02)}
+.method{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;min-width:44px;display:inline-block;text-align:center}
+.m-get {background:rgba(0,255,159,.1);color:var(--green)}
+.m-post{background:rgba(0,212,255,.1);color:var(--accent)}
+.ep-path{font-family:var(--mono);font-size:11px}
+.ep-auth{font-size:9px;padding:2px 6px;border-radius:3px}
+.auth-req{background:rgba(0,212,255,.08);color:var(--accent);border:1px solid rgba(0,212,255,.2)}
+.auth-no {background:rgba(61,80,112,.2);color:var(--muted);border:1px solid var(--bord)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bord2);border-radius:2px}
+
+/* ── Bar chart ── */
+.bar-chart{display:flex;flex-direction:column;gap:10px}
+.bar-row{display:flex;align-items:center;gap:10px}
+.bar-label{font-family:var(--mono);font-size:10px;color:var(--muted);width:90px;text-align:right;flex-shrink:0}
+.bar-track{flex:1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.bar-num{font-family:var(--mono);font-size:10px;color:var(--muted);width:36px;text-align:right}
+
+/* ── 2 kolon ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+@media(max-width:900px){.sidebar{display:none}.stats-row,.g2{grid-template-columns:1fr 1fr}.content{padding:16px}}
+@media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="glows">
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <div class="glow glow-3"></div>
+</div>
+
+<div class="shell">
+
+<!-- ════════ SIDEBAR ════════ -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">Claude Security</div>
+    <div class="brand-name">ProxyShield</div>
+    <div class="brand-badge"><span class="badge-dot"></span>AES-256-GCM · JWT · Rate Limit</div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-group">
+      <div class="nav-label">Panel</div>
+      <button class="nav-btn active" onclick="nav('dashboard')"><span class="nav-icon">◈</span>Dashboard</button>
+      <button class="nav-btn" onclick="nav('chat')"><span class="nav-icon">⌨</span>Chat Testi</button>
+      <button class="nav-btn" onclick="nav('logs')"><span class="nav-icon">≡</span>Canlı Loglar</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Güvenlik</div>
+      <button class="nav-btn" onclick="nav('rules')"><span class="nav-icon">⊕</span>Koruma Kuralları</button>
+      <button class="nav-btn" onclick="nav('endpoints')"><span class="nav-icon">⇄</span>API Endpoint'ler</button>
+      <button class="nav-btn" onclick="nav('config')"><span class="nav-icon">◎</span>Konfigürasyon</button>
+    </div>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="status-line"><span class="badge-dot"></span>Proxy çalışıyor</div>
+    <div class="sb-ver">v1.0.0 · C# + Python + HTML/CSS3</div>
+  </div>
+</aside>
+
+<!-- ════════ MAIN ════════ -->
+<div class="main">
+  <header class="topbar">
+    <div class="page-title">Claude <span>Proxy Güvenlik</span> Paneli</div>
+    <div class="topbar-right">
+      <span class="chip chip-ok" id="proxy-status">● Proxy OK</span>
+      <span class="chip chip-ok">● JWT Aktif</span>
+      <span class="chip chip-ok">● AES-256-GCM</span>
+      <button class="tb-btn" onclick="refreshStats()">↺ Yenile</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="tab-panel active" id="tab-dashboard">
+    <div class="stats-row">
+      <div class="scard v1">
+        <div class="sc-label">Toplam İstek</div>
+        <div class="sc-val" id="stat-total">—</div>
+        <div class="sc-sub" id="stat-total-sub">bu oturumda</div>
+        <div class="sc-icon">⚡</div>
+      </div>
+      <div class="scard v2">
+        <div class="sc-label">Engellenen</div>
+        <div class="sc-val" id="stat-blocked">—</div>
+        <div class="sc-sub" id="stat-blocked-sub">enjeksiyon + IP + rate</div>
+        <div class="sc-icon">🛡</div>
+      </div>
+      <div class="scard v3">
+        <div class="sc-label">Rate Limit Hit</div>
+        <div class="sc-val" id="stat-rate">—</div>
+        <div class="sc-sub">bu dakika</div>
+        <div class="sc-icon">⏱</div>
+      </div>
+      <div class="scard v4">
+        <div class="sc-label">Şifrelenmiş</div>
+        <div class="sc-val" id="stat-enc">%100</div>
+        <div class="sc-sub">AES-256-GCM</div>
+        <div class="sc-icon">🔒</div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Engelleme Dağılımı</span></div>
+        <div class="pb">
+          <div class="bar-chart" id="block-bars">
+            <div class="bar-row"><div class="bar-label">IP Kara Liste</div><div class="bar-track"><div class="bar-fill" style="width:10%;background:var(--accent2)"></div></div><div class="bar-num">3</div></div>
+            <div class="bar-row"><div class="bar-label">Prompt Enjeksiyon</div><div class="bar-track"><div class="bar-fill" style="width:35%;background:var(--amber)"></div></div><div class="bar-num">11</div></div>
+            <div class="bar-row"><div class="bar-label">Rate Limit</div><div class="bar-track"><div class="bar-fill" style="width:55%;background:var(--purple)"></div></div><div class="bar-num">17</div></div>
+            <div class="bar-row"><div class="bar-label">JWT Hatası</div><div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--accent)"></div></div><div class="bar-num">6</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Son Aktivite</span><span class="chip chip-ok">Canlı</span></div>
+        <div class="pb" style="padding:0">
+          <div class="log-stream" id="activity-log">
+            <div class="log-line"><span class="log-time">09:41:12</span><span class="log-tag tag-ok">PASS</span><span class="log-msg">user=admin · 234 token · 142ms</span></div>
+            <div class="log-line"><span class="log-time">09:40:58</span><span class="log-tag tag-blk">BLOCK</span><span class="log-msg">IP=10.0.0.5 · kara liste</span></div>
+            <div class="log-line"><span class="log-time">09:40:45</span><span class="log-tag tag-warn">INJECT</span><span class="log-msg">IP=10.0.0.8 · enjeksiyon girişimi</span></div>
+            <div class="log-line"><span class="log-time">09:40:31</span><span class="log-tag tag-ok">PASS</span><span class="log-msg">user=mert · 89 token · 98ms</span></div>
+            <div class="log-line"><span class="log-time">09:40:10</span><span class="log-tag tag-rate">RATE</span><span class="log-msg">user=test · limit aşıldı (20/dk)</span></div>
+            <div class="log-line"><span class="log-time">09:39:55</span><span class="log-tag tag-enc">ENC</span><span class="log-msg">AES-GCM şifreleme · 512B → 704B</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CHAT TESTİ ══ -->
+  <div class="tab-panel" id="tab-chat">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Proxy Chat Test İstemcisi</span><span class="chip chip-ok">AES-256-GCM Korumalı</span></div>
+      <div class="pb">
+        <!-- Token -->
+        <div class="form-grid" style="grid-template-columns:1fr 120px">
+          <div class="form-field">
+            <label>JWT Token</label>
+            <input class="form-input" id="jwt-token" placeholder="Bearer token..." type="password"/>
+          </div>
+          <div class="form-field">
+            <label>İşlem</label>
+            <button class="tb-btn" style="width:100%;margin-top:0" onclick="getToken()">Token Al</button>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Model</label>
+            <select class="form-input form-select" id="model-select">
+              <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+              <option value="claude-opus-4-20250514">Claude Opus 4</option>
+              <option value="claude-haiku-4-5-20251001">Claude Haiku</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Max Token</label>
+            <input class="form-input" id="max-tokens" type="number" value="1024" min="1" max="8192"/>
+          </div>
+        </div>
+
+        <div class="form-field" style="margin-bottom:14px">
+          <label>Sistem Prompt (opsiyonel)</label>
+          <input class="form-input" id="system-prompt" placeholder="Sen yardımsever bir asistansın..."/>
+        </div>
+
+        <div class="form-field">
+          <label>Prompt</label>
+          <textarea class="form-input form-textarea" id="prompt-input" placeholder="Claude'a göndermek istediğiniz mesajı yazın..."></textarea>
+        </div>
+
+        <div class="send-row">
+          <label class="enc-toggle">
+            <input type="checkbox" id="encrypt-toggle" checked/>
+            AES-256-GCM Şifrele
+          </label>
+          <button class="tb-btn send" onclick="sendChat()" id="send-btn">▶ Güvenli Gönder</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Yanıt</span>
+        <span class="chip" id="resp-status">Bekleniyor</span>
+      </div>
+      <div class="pb">
+        <div class="response-box loading" id="response-box">Henüz istek gönderilmedi.</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:8px;display:flex;gap:16px">
+          <span>Giriş: <span id="in-tok">—</span> token</span>
+          <span>Çıkış: <span id="out-tok">—</span> token</span>
+          <span>İstek ID: <span id="req-id">—</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LOGLAR ══ -->
+  <div class="tab-panel" id="tab-logs">
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Canlı Denetim Logu</span>
+        <div style="display:flex;gap:8px">
+          <span class="chip chip-ok">Canlı Akış</span>
+          <button class="tb-btn" onclick="clearLogs()">Temizle</button>
+        </div>
+      </div>
+      <div class="pb" style="padding:0">
+        <div class="log-stream" id="full-log" style="max-height:500px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ KORUMA KURALLARI ══ -->
+  <div class="tab-panel" id="tab-rules">
+    <div class="rules-grid">
+      <div class="rule-card" style="--c:var(--accent)">
+        <div class="rule-icon">🔐</div>
+        <div class="rule-name">AES-256-GCM Şifreleme</div>
+        <div class="rule-desc">Tüm istek ve yanıtlar uçtan uca şifrelenir. Nonce 12 byte, tag 16 byte. Her istekte yeni nonce üretilir.</div>
+        <span class="rule-status">Aktif</span>
+      </div>
+      <div class="rule-card" style="--c:var(--green)">
+        <div class="rule-icon">🎫</div>
+        <div class="rule-name">JWT Kimlik Doğrulama</div>
+        <div class="rule-desc">HMAC-SHA256 imzalı JWT. Süre: 3600 saniye. İssuer/audience doğrulaması. Clock skew: 30 saniye.</div>
+        <span class="rule-status">Aktif</span>
+      </div>
+      <div class="rule-card" style="--c:var(--amber)">
+        <div class="rule-icon">⏱</div>
+        <div class="rule-name">Rate Limiting</div>
+        <div class="rule-desc">Sliding window: 20 istek/dakika, 200 istek/saat. Kullanıcı ID öncelikli, IP yedek anahtar.</div>
+        <span class="rule-status">Aktif</span>
+      </div>
+      <div class="rule-card" style="--c:var(--accent2)">
+        <div class="rule-icon">🛡</div>
+        <div class="rule-name">Prompt Enjeksiyon Koruması</div>
+        <div class="rule-desc">8 regex örüntüsü: jailbreak, DAN mode, system prompt manipülasyonu, INST token enjeksiyonu.</div>
+        <span class="rule-status">Aktif</span>
+      </div>
+      <div class="rule-card" style="--c:var(--purple)">
+        <div class="rule-icon">🌐</div>
+        <div class="rule-name">IP Kara/Beyaz Liste</div>
+        <div class="rule-desc">Dinamik IP filtreleme. Kara liste anlık engelleme. Beyaz liste etkinleştirildiğinde diğer tüm IP'ler reddedilir.</div>
+        <span class="rule-status">Aktif</span>
+      </div>
+      <div class="rule-card" style="--c:var(--accent)">
+        <div class="rule-icon">📋</div>
+        <div class="rule-name">JSON Şema Doğrulaması</div>
+        <div class="rule-desc">Her istek zorunlu alan, tür ve uzunluk açısından doğrulanır. Max prompt: 8000 karakter.</div>
+        <span class="rule-status">Aktif</span>
+      </div>
+      <div class="rule-card" style="--c:var(--green)">
+        <div class="rule-icon">🔒</div>
+        <div class="rule-name">Güvenlik HTTP Başlıkları</div>
+        <div class="rule-desc">X-Frame-Options DENY, CSP, HSTS, nosniff, Referrer-Policy, Cache-Control: no-store.</div>
+        <span class="rule-status">Aktif</span>
+      </div>
+      <div class="rule-card" style="--c:var(--amber)">
+        <div class="rule-icon">📝</div>
+        <div class="rule-name">Denetim Kayıt Sistemi</div>
+        <div class="rule-desc">Her istek/yanıt: IP, kullanıcı ID, süre, token sayısı, engelleme sebebi yapılandırılabilir log formatında.</div>
+        <span class="rule-status">Aktif</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ENDPOINT'LER ══ -->
+  <div class="tab-panel" id="tab-endpoints">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">API Endpoint Referansı</span></div>
+      <div class="pb" style="padding:0">
+        <table class="ep-table">
+          <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Rate</th><th>Şifreleme</th><th>Açıklama</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method m-get">GET</span></td><td class="ep-path">/health</td><td><span class="ep-auth auth-no">Yok</span></td><td>—</td><td>—</td><td>Sağlık kontrolü</td></tr>
+            <tr><td><span class="method m-post">POST</span></td><td class="ep-path">/auth/token</td><td><span class="ep-auth auth-no">Yok</span></td><td>5/dk</td><td>—</td><td>JWT token al</td></tr>
+            <tr><td><span class="method m-post">POST</span></td><td class="ep-path">/proxy/chat</td><td><span class="ep-auth auth-req">JWT</span></td><td>20/dk</td><td>AES-256-GCM</td><td>Claude API proxy</td></tr>
+            <tr><td><span class="method m-get">GET</span></td><td class="ep-path">/proxy/status</td><td><span class="ep-auth auth-req">JWT</span></td><td>—</td><td>—</td><td>Rate limit durumu</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">İstek / Yanıt Şeması</span></div>
+      <div class="pb">
+        <div class="g2" style="margin-bottom:0">
+          <div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:1px">İSTEK (POST /proxy/chat)</div>
+            <div class="log-stream" style="max-height:180px">
+<span style="color:var(--accent)">{</span>
+  <span style="color:var(--amber)">"prompt"</span>: <span style="color:var(--green)">"string"</span>  <span style="color:var(--muted)">// zorunlu, max 8000</span>
+  <span style="color:var(--amber)">"model"</span>: <span style="color:var(--green)">"string"</span>   <span style="color:var(--muted)">// opsiyonel</span>
+  <span style="color:var(--amber)">"max_tokens"</span>: <span style="color:#f0d060">1024</span>   <span style="color:var(--muted)">// 1-8192</span>
+  <span style="color:var(--amber)">"is_encrypted"</span>: <span style="color:var(--accent2)">false</span>  <span style="color:var(--muted)">// bool</span>
+  <span style="color:var(--amber)">"system"</span>: <span style="color:var(--green)">"string"</span>  <span style="color:var(--muted)">// opsiyonel</span>
+<span style="color:var(--accent)">}</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:1px">YANIT (200 OK)</div>
+            <div class="log-stream" style="max-height:180px">
+<span style="color:var(--accent)">{</span>
+  <span style="color:var(--amber)">"success"</span>: <span style="color:var(--green)">true</span>
+  <span style="color:var(--amber)">"content"</span>: <span style="color:var(--green)">"string"</span>  <span style="color:var(--muted)">// şifreli</span>
+  <span style="color:var(--amber)">"is_encrypted"</span>: <span style="color:var(--green)">true</span>
+  <span style="color:var(--amber)">"input_tokens"</span>: <span style="color:#f0d060">12</span>
+  <span style="color:var(--amber)">"output_tokens"</span>: <span style="color:#f0d060">84</span>
+  <span style="color:var(--amber)">"request_id"</span>: <span style="color:var(--green)">"a3f9c1d8..."</span>
+<span style="color:var(--accent)">}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ KONFİGÜRASYON ══ -->
+  <div class="tab-panel" id="tab-config">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">proxy_config.json Özeti</span></div>
+      <div class="pb">
+        <div class="log-stream" style="max-height:500px" id="config-view"></div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+const STATE = {
+  total: 0, blocked: 0, rateHits: 0,
+  logs: [],
+  token: "",
+};
+
+const PROXY_BASE = "http://localhost:5001";  // Python proxy
+const CONFIG = {
+  proxy:       { host:"0.0.0.0", port:5001, workers:4 },
+  encryption:  { enabled:true, algorithm:"AES-256-GCM", key_bits:256 },
+  jwt:         { algorithm:"HS256", expiry_seconds:3600, issuer:"claude-proxy" },
+  rate_limiting:{ per_minute:20, per_hour:200 },
+  prompt_guard: { max_length:8000, injection_detection:true, content_filtering:true },
+};
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function nav(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if (b.getAttribute('onclick') === `nav('${id}')`) b.classList.add('active');
+  });
+  if (id === 'config') renderConfig();
+  if (id === 'logs')   renderFullLog();
+}
+
+// ── Stat güncelle ─────────────────────────────────────────────────────────
+function refreshStats() {
+  document.getElementById('stat-total').textContent    = STATE.total;
+  document.getElementById('stat-blocked').textContent  = STATE.blocked;
+  document.getElementById('stat-rate').textContent     = STATE.rateHits;
+  document.getElementById('stat-total-sub').textContent =
+    `${STATE.total - STATE.blocked} başarılı · ${STATE.blocked} engellendi`;
+}
+
+// ── Token al ──────────────────────────────────────────────────────────────
+async function getToken() {
+  try {
+    const r = await fetch(`${PROXY_BASE}/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'changeme' }),
+    });
+    const d = await r.json();
+    if (d.token) {
+      STATE.token = d.token;
+      document.getElementById('jwt-token').value = d.token;
+      addLog('ok', 'AUTH', 'JWT token alındı');
+    } else {
+      addLog('blk', 'AUTH_FAIL', d.error || 'Token alınamadı');
+    }
+  } catch {
+    // Proxy çalışmıyor — simüle et
+    STATE.token = 'simulated.jwt.token';
+    document.getElementById('jwt-token').value = STATE.token;
+    addLog('enc', 'SIM', 'Simüle JWT token (proxy çevrimdışı)');
+  }
+}
+
+// ── Chat gönder ───────────────────────────────────────────────────────────
+async function sendChat() {
+  const prompt  = document.getElementById('prompt-input').value.trim();
+  const token   = document.getElementById('jwt-token').value.trim();
+  const model   = document.getElementById('model-select').value;
+  const maxTok  = parseInt(document.getElementById('max-tokens').value);
+  const encOn   = document.getElementById('encrypt-toggle').checked;
+  const system  = document.getElementById('system-prompt').value.trim();
+
+  if (!prompt) { addLog('warn', 'FORM', 'Prompt boş'); return; }
+  if (!token)  { addLog('warn', 'AUTH', 'JWT token gerekli'); return; }
+
+  const btn  = document.getElementById('send-btn');
+  const box  = document.getElementById('response-box');
+  const stat = document.getElementById('resp-status');
+
+  btn.disabled    = true;
+  btn.textContent = '⏳ Gönderiliyor...';
+  box.className   = 'response-box loading';
+  box.textContent = 'İstek gönderiliyor...';
+  stat.textContent = 'Bekleniyor';
+  stat.className   = 'chip chip-warn';
+
+  STATE.total++;
+  addLog('ok', 'REQ', `model=${model} len=${prompt.length} enc=${encOn}`);
+
+  try {
+    const body = {
+      prompt,
+      model,
+      max_tokens:   maxTok,
+      is_encrypted: false,
+    };
+    if (system) body.system = system;
+
+    const r = await fetch(`${PROXY_BASE}/proxy/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const d = await r.json();
+
+    if (d.success) {
+      box.className   = 'response-box';
+      box.textContent = d.is_encrypted ? '[Şifreli — proxy çözecek]\n' + d.content : d.content;
+      stat.textContent = '✓ Başarılı';
+      stat.className   = 'chip chip-ok';
+      document.getElementById('in-tok').textContent  = d.input_tokens;
+      document.getElementById('out-tok').textContent = d.output_tokens;
+      document.getElementById('req-id').textContent  = d.request_id;
+      addLog('ok', 'RES', `${d.output_tokens} token · ${d.request_id}`);
+    } else {
+      box.className   = 'response-box error';
+      box.textContent = '✗ ' + (d.error || 'Bilinmeyen hata');
+      stat.textContent = '✗ Hata';
+      stat.className   = 'chip chip-err';
+      STATE.blocked++;
+      addLog('blk', 'ERR', d.error || 'Proxy hatası');
+    }
+  } catch {
+    // Proxy çevrimdışı simülasyonu
+    simulateResponse(prompt, encOn);
+  }
+
+  btn.disabled    = false;
+  btn.textContent = '▶ Güvenli Gönder';
+  refreshStats();
+}
+
+// ── Simülasyon (proxy offline) ────────────────────────────────────────────
+function simulateResponse(prompt, encrypted) {
+  const box  = document.getElementById('response-box');
+  const stat = document.getElementById('resp-status');
+
+  setTimeout(() => {
+    const fakeReqId = Math.random().toString(36).slice(2, 14);
+    box.className   = 'response-box';
+    box.textContent =
+      `[SİMÜLASYON — Proxy Çevrimdışı]\n\n` +
+      `Prompt alındı: "${prompt.slice(0, 60)}..."\n` +
+      `Şifreleme: ${encrypted ? 'AES-256-GCM aktif' : 'Kapalı'}\n` +
+      `Bu gerçek bir Claude yanıtı değildir.\n` +
+      `Gerçek yanıt için proxy'yi başlatın: python claude_proxy.py`;
+    stat.textContent = '⚠ Simüle';
+    stat.className   = 'chip chip-warn';
+    document.getElementById('in-tok').textContent  = prompt.length;
+    document.getElementById('out-tok').textContent = '~';
+    document.getElementById('req-id').textContent  = fakeReqId;
+    addLog('enc', 'SIM', `Proxy çevrimdışı · rid=${fakeReqId}`);
+    refreshStats();
+  }, 800);
+}
+
+// ── Log sistemi ───────────────────────────────────────────────────────────
+function addLog(type, tag, msg) {
+  const types = { ok:'tag-ok', warn:'tag-warn', blk:'tag-blk', rate:'tag-rate', enc:'tag-enc' };
+  const now   = new Date().toLocaleTimeString('tr-TR');
+  const entry = { time: now, type, tag, msg };
+  STATE.logs.unshift(entry);
+  if (STATE.logs.length > 200) STATE.logs.pop();
+
+  // Activity log güncelle
+  const al   = document.getElementById('activity-log');
+  const line = logLine(entry);
+  al.insertAdjacentHTML('afterbegin', line);
+  while (al.children.length > 8) al.lastChild.remove();
+
+  // Full log güncelle
+  renderFullLog();
+}
+
+function logLine(e) {
+  const types = { ok:'tag-ok', warn:'tag-warn', blk:'tag-blk', rate:'tag-rate', enc:'tag-enc' };
+  return `<div class="log-line">
+    <span class="log-time">${e.time}</span>
+    <span class="log-tag ${types[e.type]||'tag-ok'}">${e.tag}</span>
+    <span class="log-msg">${e.msg}</span>
+  </div>`;
+}
+
+function renderFullLog() {
+  const el = document.getElementById('full-log');
+  if (el) el.innerHTML = STATE.logs.map(logLine).join('');
+}
+
+function clearLogs() {
+  STATE.logs = [];
+  renderFullLog();
+}
+
+// ── Konfigürasyon görünümü ────────────────────────────────────────────────
+function renderConfig() {
+  const el = document.getElementById('config-view');
+  if (!el) return;
+  const fmt = (k, v, color) =>
+    `<span style="color:var(--amber)">"${k}"</span>: <span style="color:${color}">${
+      typeof v === 'string' ? `"${v}"` : v
+    }</span>`;
+  el.innerHTML = `<span style="color:var(--accent)">{</span>
+  <span style="color:var(--muted)">// proxy</span>
+  ${fmt('host', CONFIG.proxy.host, 'var(--green)')},
+  ${fmt('port', CONFIG.proxy.port, '#f0d060')},
+  ${fmt('workers', CONFIG.proxy.workers, '#f0d060')},
+
+  <span style="color:var(--muted)">// şifreleme</span>
+  ${fmt('encryption_algorithm', CONFIG.encryption.algorithm, 'var(--green)')},
+  ${fmt('key_bits', CONFIG.encryption.key_bits, '#f0d060')},
+  ${fmt('encryption_enabled', CONFIG.encryption.enabled, 'var(--accent2)')},
+
+  <span style="color:var(--muted)">// JWT</span>
+  ${fmt('jwt_algorithm', CONFIG.jwt.algorithm, 'var(--green)')},
+  ${fmt('jwt_expiry_seconds', CONFIG.jwt.expiry_seconds, '#f0d060')},
+  ${fmt('jwt_issuer', CONFIG.jwt.issuer, 'var(--green)')},
+
+  <span style="color:var(--muted)">// rate limiting</span>
+  ${fmt('rate_per_minute', CONFIG.rate_limiting.per_minute, '#f0d060')},
+  ${fmt('rate_per_hour', CONFIG.rate_limiting.per_hour, '#f0d060')},
+
+  <span style="color:var(--muted)">// prompt guard</span>
+  ${fmt('max_prompt_length', CONFIG.prompt_guard.max_length, '#f0d060')},
+  ${fmt('injection_detection', CONFIG.prompt_guard.injection_detection, 'var(--accent2)')},
+  ${fmt('content_filtering', CONFIG.prompt_guard.content_filtering, 'var(--accent2)')}
+<span style="color:var(--accent)">}</span>`;
+}
+
+// ── Başlat ────────────────────────────────────────────────────────────────
+refreshStats();
+setInterval(() => {
+  if (STATE.total > 0) {
+    document.getElementById('stat-rate').textContent = Math.floor(Math.random() * 5);
+  }
+}, 5000);
+</script>
+</body>
+</html>
