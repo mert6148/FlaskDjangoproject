@@ -34,6 +34,28 @@ Windows PowerShell:
 powershell -File scripts/activate_venv.ps1
 ```
 
+## Terminal Otomasyon Scriptleri
+
+`/scripts/terminal` klasöründeki scriptler terminal kurulumu ve proje bağımlılıkları için güncellendi.
+
+- `scripts/terminal/terminal.ps1`
+- `scripts/terminal/run.bat`
+- `scripts/terminal/terminal.py`
+- `scripts/terminal/README.md`
+
+Çalıştırma:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/terminal/terminal.ps1
+```
+
+veya
+
+```batch
+scripts/terminal/run.bat
+```
+
+
 ## Test çalıştırma
 
 `pytest test/test_infra.py test/test_mysql_protection.py`
