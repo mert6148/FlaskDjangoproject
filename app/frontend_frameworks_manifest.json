@@ -1,0 +1,10 @@
+{
+  "flask": true,
+  "fastapi": true,
+  "django": true,
+  "api_entrypoints": {
+    "flask": "fastadmin.api.frameworks.flask.app.app",
+    "fastapi": "fastadmin.api.frameworks.fastapi.app.app",
+    "django": "fastadmin.api.frameworks.django.app.urls.get_admin_urls"
+  }
+}
