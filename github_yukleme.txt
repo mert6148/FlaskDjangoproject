@@ -1,29 +1,18 @@
-# GITHUB'A PROJE YÜKLEME ADIMLARI
+# Navigate to your project directory
+cd FlaskDjangoproject
 
-# 1. Proje klasörüne git
-
-cd PROJE_KLASOR_YOLU
-
-# 2. Git başlat
-
+# Initialize git (if not already done)
 git init
 
-# 3. Tüm dosyaları ekle
-
+# Add all files
 git add .
 
-# 4. İlk commit
+# Create initial commit
+git commit -m "Initial commit"
 
-git commit -m "ilk commit"
+# Add remote repository (use the URL provided)
+git remote add origin https://github.com/mert6148/FlaskDjangoproject.git
 
-# 5. Branch adını main yap
-
+# Push to GitHub (for the first time)
 git branch -M main
-
-# 6. GitHub repo bağlantısı ekle
-
-git remote add origin https://github.com/KULLANICI_ADIN/REPO_ADI.git
-
-# 7. Projeyi GitHub'a gönder
-
 git push -u origin main
