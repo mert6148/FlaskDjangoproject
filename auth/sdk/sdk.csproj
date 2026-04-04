@@ -1,0 +1,5 @@
+<ItemGroup>
+  <Reference Include="SizinKutuphaneniz">
+    <HintPath>SDK\SizinKutuphaneniz.dll</HintPath>
+  </Reference>
+</ItemGroup>

@@ -28,9 +28,11 @@ def create_flask_app():
 
     # ── Yapılandırma ──────────────────────────────────────────────────────────
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "gizli-anahtar-degistir")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "DATABASE_URL", "sqlite:///flask_app.db"
-    )
+
+    mysql_url = os.environ.get("MYSQL_DATABASE_URL")
+    sqlite_url = "sqlite:///flask_app.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = mysql_url or os.environ.get("DATABASE_URL", sqlite_url)
+
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", "true").lower() == "true"
 
@@ -76,6 +78,23 @@ def create_flask_app():
     def basari_yaniti(veri, mesaj="Başarılı", kod=200):
         return jsonify({"mesaj": mesaj, "veri": veri}), kod
 
+    # ── Güvenlik ve koruma ─────────────────────────────────────────────────────
+    IP_BLACKLIST = set(os.environ.get("IP_BLACKLIST", "").split(",")) if os.environ.get("IP_BLACKLIST") else set()
+
+    @app.before_request
+    def ip_kontrolu():
+        ip = request.remote_addr
+        if ip in IP_BLACKLIST:
+            return hata_yaniti("Erişim engellendi.", 403)
+
+    @app.after_request
+    def guvenlik_basliklari(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        return response
+
     # ── Rotalar: Ana Sayfa ────────────────────────────────────────────────────
     @app.route("/")
     def ana_sayfa():
@@ -89,9 +108,19 @@ def create_flask_app():
           <li>DELETE /api/kullanicilar/&lt;id&gt;</li>
           <li>GET  /api/urunler</li>
           <li>POST /api/urunler</li>
+          <li>GET  /api/db-check</li>
         </ul>
         """
         return render_template_string(html)
+
+    @app.route("/api/db-check")
+    def db_check():
+        try:
+            result = db.session.execute("SELECT 1").scalar()
+            engine_url = str(db.engine.url)
+            return basari_yaniti({"db_url": engine_url, "ok": result == 1}, "Veritabanı bağlantısı sağlandı")
+        except Exception as error:
+            return hata_yaniti(f"Veritabanı bağlantı hatası: {error}", 500)
 
     # ── Rotalar: Kullanıcı CRUD ───────────────────────────────────────────────
     @app.route("/api/kullanicilar", methods=["GET"])
